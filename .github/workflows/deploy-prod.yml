@@ -1,0 +1,99 @@
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  PNPM_VERSION: 9.15.4
+  NODE_VERSION: 20
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/emas
+
+jobs:
+  deploy-production:
+    name: Deploy to emas.my
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://emas.my
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract version tag
+        id: meta
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-api:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_PREFIX }}-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-web:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_PREFIX }}-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/worker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-worker:${{ steps.meta.outputs.version }}
+            ${{ env.IMAGE_PREFIX }}-worker:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run DB migrations (production)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/emas
+            docker compose pull
+            docker compose run --rm api pnpm db:migrate
+
+      - name: Rolling deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/emas
+            docker compose up -d --remove-orphans
+            docker image prune -f

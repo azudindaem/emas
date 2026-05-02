@@ -1,0 +1,87 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 9.15.4
+  NODE_VERSION: 20
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/emas
+
+jobs:
+  deploy-dev:
+    name: Deploy to dev.emas.my
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: https://dev.emas.my
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-api:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/web/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-web:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/worker/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-worker:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run DB migrations
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            cd /opt/emas
+            docker compose -f docker-compose.dev.yml pull
+            docker compose -f docker-compose.dev.yml run --rm api pnpm db:migrate
+
+      - name: Deploy services
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            cd /opt/emas
+            docker compose -f docker-compose.dev.yml up -d --remove-orphans
