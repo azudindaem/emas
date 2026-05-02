@@ -1,0 +1,210 @@
+const API_BASE = '/api/v1'
+
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('emas_token')
+}
+
+export function setToken(token: string) {
+  localStorage.setItem('emas_token', token)
+}
+
+export function clearToken() {
+  localStorage.removeItem('emas_token')
+  localStorage.removeItem('emas_user')
+}
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> | undefined),
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+
+  if (res.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    throw new Error('Unauthorized')
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.message ?? 'Request failed')
+  }
+
+  return res.json() as Promise<T>
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export const auth = {
+  register: (data: { name: string; email: string; password: string }) =>
+    request<{ accessToken: string; user: Record<string, unknown> }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  login: (data: { email: string; password: string }) =>
+    request<{ accessToken: string; user: Record<string, unknown> }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
+export const orders = {
+  list: (params?: Record<string, string | number>) => {
+    const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/order${q}`)
+  },
+  get: (id: string) => request<unknown>(`/order/${id}`),
+  create: (data: unknown) => request<unknown>('/order', { method: 'POST', body: JSON.stringify(data) }),
+  updateStatus: (id: string, status: string) =>
+    request<unknown>(`/order/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updatePaymentStatus: (id: string, paymentStatus: string) =>
+    request<unknown>(`/order/${id}/payment-status`, { method: 'PATCH', body: JSON.stringify({ paymentStatus }) }),
+}
+
+// ─── Products ─────────────────────────────────────────────────────────────────
+
+export const products = {
+  list: (params?: Record<string, string | number>) => {
+    const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/product${q}`)
+  },
+  get: (id: string) => request<unknown>(`/product/${id}`),
+  create: (data: unknown) => request<unknown>('/product', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: unknown) => request<unknown>(`/product/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<unknown>(`/product/${id}`, { method: 'DELETE' }),
+  addVariation: (productId: string, data: unknown) =>
+    request<unknown>(`/product/${productId}/variations`, { method: 'POST', body: JSON.stringify(data) }),
+  updateVariation: (productId: string, variationId: string, data: unknown) =>
+    request<unknown>(`/product/${productId}/variations/${variationId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteVariation: (productId: string, variationId: string) =>
+    request<unknown>(`/product/${productId}/variations/${variationId}`, { method: 'DELETE' }),
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export const inventory = {
+  stocks: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/inventory/stocks${q}`)
+  },
+  movements: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/inventory/movements${q}`)
+  },
+  adjust: (data: unknown) => request<unknown>('/inventory/stocks/adjust', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ─── Shipping ─────────────────────────────────────────────────────────────────
+
+export const shipping = {
+  listShipments: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/shipping/shipments${q}`)
+  },
+  updateShipmentStatus: (id: string, status: string) =>
+    request<unknown>(`/shipping/shipments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  listCouriers: () => request<unknown[]>('/shipping/couriers'),
+  createCourier: (data: unknown) =>
+    request<unknown>('/shipping/couriers', { method: 'POST', body: JSON.stringify(data) }),
+  updateCourier: (id: string, data: unknown) =>
+    request<unknown>(`/shipping/couriers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCourier: (id: string) =>
+    request<unknown>(`/shipping/couriers/${id}`, { method: 'DELETE' }),
+  generateAwb: (data: unknown) =>
+    request<unknown>('/shipping/awb', { method: 'POST', body: JSON.stringify(data) }),
+  trackShipment: (trackingNo: string, provider: string) =>
+    request<unknown>('/shipping/track', { method: 'POST', body: JSON.stringify({ trackingNo, provider }) }),
+}
+
+// ─── Invoice ──────────────────────────────────────────────────────────────────
+
+export const invoices = {
+  list: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/invoice${q}`)
+  },
+  get: (id: string) => request<unknown>(`/invoice/${id}`),
+  generate: (data: unknown) => request<unknown>('/invoice/generate', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export const wallet = {
+  balances: () => request<unknown[]>('/wallet/balances'),
+  transactions: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ items: unknown[]; meta: unknown }>(`/wallet/transactions${q}`)
+  },
+  credit: (data: unknown) => request<unknown>('/wallet/credit', { method: 'POST', body: JSON.stringify(data) }),
+  debit: (data: unknown) => request<unknown>('/wallet/debit', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ─── Commission ───────────────────────────────────────────────────────────────
+
+export const commission = {
+  rules: () => request<unknown[]>('/commission/rules'),
+  createRule: (data: unknown) => request<unknown>('/commission/rules', { method: 'POST', body: JSON.stringify(data) }),
+  calculate: (orderId: string) =>
+    request<unknown>('/commission/calculate', { method: 'POST', body: JSON.stringify({ orderId }) }),
+}
+
+// ─── Team ─────────────────────────────────────────────────────────────────────
+
+export const team = {
+  members: () => request<unknown[]>('/user/members'),
+  roles: () => request<unknown[]>('/user/roles'),
+}
+
+// ─── Coupons ──────────────────────────────────────────────────────────────────
+
+export const coupons = {
+  list: () => request<unknown[]>('/coupon'),
+  create: (data: unknown) => request<unknown>('/coupon', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: unknown) => request<unknown>(`/coupon/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<unknown>(`/coupon/${id}`, { method: 'DELETE' }),
+  validate: (data: { code: string; orderAmount?: number }) =>
+    request<{ valid: boolean; discount: number; coupon: unknown }>('/coupon/validate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
+// ─── Brands ───────────────────────────────────────────────────────────────────
+
+export const brands = {
+  list: () => request<unknown[]>('/brand'),
+  create: (data: unknown) => request<unknown>('/brand', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: unknown) => request<unknown>(`/brand/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<unknown>(`/brand/${id}`, { method: 'DELETE' }),
+  getBranding: () => request<unknown>('/brand/branding/config'),
+  saveBranding: (data: unknown) =>
+    request<unknown>('/brand/branding/config', { method: 'PUT', body: JSON.stringify(data) }),
+}
+
+// ─── Roles ────────────────────────────────────────────────────────────────────
+
+export const roles = {
+  list: () => request<unknown[]>('/role'),
+  create: (data: unknown) => request<unknown>('/role', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: unknown) => request<unknown>(`/role/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<unknown>(`/role/${id}`, { method: 'DELETE' }),
+  automations: () => request<unknown[]>('/role/automation/list'),
+  createAutomation: (data: unknown) =>
+    request<unknown>('/role/automation', { method: 'POST', body: JSON.stringify(data) }),
+  updateAutomation: (id: string, data: unknown) =>
+    request<unknown>(`/role/automation/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteAutomation: (id: string) => request<unknown>(`/role/automation/${id}`, { method: 'DELETE' }),
+  trigger: (data: { event: string; userId: string; context?: Record<string, unknown> }) =>
+    request<unknown>('/role/automation/trigger', { method: 'POST', body: JSON.stringify(data) }),
+}

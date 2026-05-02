@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -38,6 +38,8 @@ model Tenant {
   notificationConfigs NotificationConfig[]
   brands       Brand[]
   auditLogs    AuditLog[]
+  coupons      Coupon[]
+  roleAutomations RoleAutomation[]
 
   @@index([slug])
 }
@@ -134,6 +136,10 @@ model User {
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   memberships Membership[]
   orders      Order[]      @relation("OrderCreatedBy")
+  ownedOrders     Order[]      @relation("OrderOwner")
+  ownedProducts   Product[]    @relation("ProductOwner")
+  ownedWarehouses Warehouse[]  @relation("WarehouseOwner")
+  ownedInvoices   Invoice[]    @relation("InvoiceOwner")
   wallet      Wallet?
   auditLogs   AuditLog[]
 
@@ -166,12 +172,13 @@ model Role {
   tenantId    String
   name        String
   level       Int     @default(1)
-  permissions String[]
+  permissions Json    @default("[]")
   isDefault   Boolean @default(false)
   createdAt   DateTime @default(now())
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   memberships Membership[]
+  automations RoleAutomation[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -184,6 +191,7 @@ model Role {
 model Product {
   id          String  @id @default(uuid())
   tenantId    String
+  ownerId     String?
   brandId     String?
   sku         String
   name        String
@@ -194,12 +202,14 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner      User?             @relation("ProductOwner", fields: [ownerId], references: [id])
   brand      Brand?            @relation(fields: [brandId], references: [id])
   variations ProductVariation[]
   orderItems OrderItem[]
 
   @@unique([tenantId, sku])
   @@index([tenantId])
+  @@index([ownerId])
 }
 
 model ProductVariation {
@@ -223,14 +233,17 @@ model ProductVariation {
 model Warehouse {
   id       String @id @default(uuid())
   tenantId String
+  ownerId  String?
   name     String
   address  String?
   isDefault Boolean @default(false)
 
   tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner  User?          @relation("WarehouseOwner", fields: [ownerId], references: [id])
   stocks ProductStock[]
 
   @@index([tenantId])
+  @@index([ownerId])
 }
 
 model ProductStock {
@@ -268,6 +281,7 @@ model StockMovement {
 model Order {
   id            String      @id @default(uuid())
   tenantId      String
+  ownerId       String?
   orderNo       String
   brandId       String?
   customerId    String?
@@ -287,15 +301,18 @@ model Order {
   updatedAt     DateTime    @updatedAt
 
   tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner     User?       @relation("OrderOwner", fields: [ownerId], references: [id])
   brand     Brand?      @relation(fields: [brandId], references: [id])
   createdBy User?       @relation("OrderCreatedBy", fields: [createdById], references: [id])
-  items     OrderItem[]
-  shipment  OrderShipment?
-  payments  OrderPayment[]
-  invoices  Invoice[]
+  items        OrderItem[]
+  shipment     OrderShipment?
+  payments     OrderPayment[]
+  invoices     Invoice[]
+  couponUsages CouponUsage[]
 
   @@unique([tenantId, orderNo])
   @@index([tenantId])
+  @@index([ownerId])
   @@index([status])
   @@index([createdAt])
 }
@@ -352,6 +369,7 @@ model OrderPayment {
 model Invoice {
   id         String      @id @default(uuid())
   tenantId   String
+  ownerId    String?
   orderId    String
   type       InvoiceType
   invoiceNo  String
@@ -359,9 +377,11 @@ model Invoice {
   createdAt  DateTime    @default(now())
 
   order Order @relation(fields: [orderId], references: [id])
+  owner User? @relation("InvoiceOwner", fields: [ownerId], references: [id])
 
   @@unique([tenantId, invoiceNo])
   @@index([orderId])
+  @@index([ownerId])
 }
 
 // ─────────────────────────────────────────────────────────
@@ -617,4 +637,72 @@ enum NotificationChannel {
   WHATSAPP_OFFICIAL
   WHATSAPP_UNOFFICIAL
   WEBHOOK
+}
+
+// ─────────────────────────────────────────────────────────
+// COUPON
+// ─────────────────────────────────────────────────────────
+
+model Coupon {
+  id              String      @id @default(uuid())
+  tenantId        String
+  code            String
+  type            CouponType  @default(PERCENTAGE)
+  value           Decimal     @db.Decimal(10,2)
+  minOrderAmount  Decimal?    @db.Decimal(10,2)
+  maxDiscount     Decimal?    @db.Decimal(10,2)
+  usageLimit      Int?
+  usedCount       Int         @default(0)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usages  CouponUsage[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model CouponUsage {
+  id        String   @id @default(uuid())
+  couponId  String
+  orderId   String
+  userId    String?
+  discount  Decimal  @db.Decimal(10,2)
+  usedAt    DateTime @default(now())
+
+  coupon  Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, orderId])
+  @@index([couponId])
+}
+
+// ─────────────────────────────────────────────────────────
+// ROLE AUTOMATION
+// ─────────────────────────────────────────────────────────
+
+model RoleAutomation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  trigger   String
+  condition Json     @default("{}")
+  roleId    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
 }

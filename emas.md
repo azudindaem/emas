@@ -1,5 +1,31 @@
 emas.my E-commerce Management & Automation System
 
+## Execution Checklist (Proceed One by One)
+
+### Phase 1 - Critical MVP
+- [x] Foundation setup (web live, api live, db + tenancy + auth basic)
+- [x] Order Management CRUD API
+- [x] Product + Variation CRUD API
+- [x] Inventory (stock, reserve, movement log)
+- [x] Team roles + RBAC enforcement
+- [x] Invoice generation (seller + customer)
+- [x] Order status workflow + payment status workflow
+- [x] Basic notification (email queue)
+
+### Phase 2 - Courier Integration
+- [ ] Courier account management
+- [ ] AWB generation + tracking
+- [ ] Label printing
+- [ ] Bulk AWB creation
+
+### Phase 3 - Commission + Wallet
+- [ ] Commission engine (sales, recruitment, channel, network)
+- [ ] Wallet account + transactions
+- [ ] Commission payout flow
+
+### Current Step In Progress
+- [ ] Step 7: Courier account management + AWB base flow
+
 ## GitHub-First Starter Blueprint (dev.emas.my -> emas.my)
 
 ### Technology Stack (Recommended)

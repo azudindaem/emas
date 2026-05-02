@@ -1,17 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { resolveTenantFromHost } from '@emas/tenancy'
 
-export async function middleware(request: NextRequest) {
+// Middleware runs on edge runtime — we pass host header through.
+// Actual tenant resolution happens in server components via API or DB (Node.js runtime).
+export function middleware(request: NextRequest) {
   const host = request.headers.get('host') ?? ''
-  const tenant = await resolveTenantFromHost(host)
-
-  if (!tenant) {
-    return NextResponse.redirect(new URL('/tenant-not-found', request.url))
-  }
-
   const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-tenant-id', tenant.id)
-  requestHeaders.set('x-tenant-slug', tenant.slug)
+  requestHeaders.set('x-forwarded-host', host)
 
   return NextResponse.next({ request: { headers: requestHeaders } })
 }

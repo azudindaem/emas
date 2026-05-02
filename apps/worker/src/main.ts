@@ -1,11 +1,11 @@
-import { Worker } from 'bullmq'
+import { Processor, Worker } from 'bullmq'
 import { redisConnection } from './lib/redis'
 import { notificationProcessor } from './queues/notification.processor'
 import { invoiceProcessor } from './queues/invoice.processor'
 import { shippingProcessor } from './queues/shipping.processor'
 import { commissionProcessor } from './queues/commission.processor'
 
-function createWorker(queueName: string, processor: Parameters<typeof Worker>[1]) {
+function createWorker(queueName: string, processor: Processor<any, any, string>) {
   const worker = new Worker(queueName, processor, {
     connection: redisConnection,
     concurrency: 5,
