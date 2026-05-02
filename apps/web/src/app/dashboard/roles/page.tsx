@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { roles } from '@/lib/api'
+import { useLocale } from '@/lib/locale'
 import { ShieldCheck, Plus, Trash2, Zap, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Role {
@@ -24,24 +25,23 @@ interface Automation {
 }
 
 const TRIGGERS = [
-  { value: 'user.register', label: 'Pengguna daftar' },
-  { value: 'order.complete', label: 'Pesanan selesai' },
-  { value: 'membership.upgrade', label: 'Keahlian naik taraf' },
+  { value: 'user.register', labelKey: 'triggerRegister' as const },
+  { value: 'order.complete', labelKey: 'triggerOrderComplete' as const },
+  { value: 'membership.upgrade', labelKey: 'triggerMembershipUpgrade' as const },
 ]
 
 export default function RolesPage() {
+  const { t } = useLocale()
   const [roleList, setRoleList] = useState<Role[]>([])
   const [automationList, setAutomationList] = useState<Automation[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'roles' | 'automations'>('roles')
 
-  // Role form
   const [showRoleForm, setShowRoleForm] = useState(false)
   const [roleName, setRoleName] = useState('')
   const [rolePermissions, setRolePermissions] = useState('')
   const [savingRole, setSavingRole] = useState(false)
 
-  // Automation form
   const [showAutoForm, setShowAutoForm] = useState(false)
   const [autoName, setAutoName] = useState('')
   const [autoTrigger, setAutoTrigger] = useState('user.register')
@@ -58,7 +58,7 @@ export default function RolesPage() {
       setRoleList(r as Role[])
       setAutomationList(a as Automation[])
     } catch {
-      setError('Gagal memuatkan data')
+      setError(t.roles.failedLoad)
     } finally {
       setLoading(false)
     }
@@ -78,14 +78,14 @@ export default function RolesPage() {
       setShowRoleForm(false)
       await load()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Gagal mencipta peranan')
+      setError(e instanceof Error ? e.message : t.roles.failedCreate)
     } finally {
       setSavingRole(false)
     }
   }
 
   const handleDeleteRole = async (id: string) => {
-    if (!confirm('Padam peranan ini?')) return
+    if (!confirm(t.roles.deleteConfirmRole)) return
     try {
       await roles.delete(id)
       await load()
@@ -94,27 +94,27 @@ export default function RolesPage() {
 
   const handleCreateAuto = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!autoRoleId) { setError('Pilih peranan'); return }
+    if (!autoRoleId) { setError(t.roles.selectRoleFirst); return }
     setSavingAuto(true)
     setError('')
     try {
       let condition = {}
       if (autoCondition.trim()) {
-        try { condition = JSON.parse(autoCondition) } catch { setError('Condition JSON tidak sah'); setSavingAuto(false); return }
+        try { condition = JSON.parse(autoCondition) } catch { setError(t.roles.conditionInvalid); setSavingAuto(false); return }
       }
       await roles.createAutomation({ name: autoName, trigger: autoTrigger, roleId: autoRoleId, condition })
       setAutoName(''); setAutoTrigger('user.register'); setAutoRoleId(''); setAutoCondition('')
       setShowAutoForm(false)
       await load()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Gagal mencipta automasi')
+      setError(e instanceof Error ? e.message : t.roles.failedCreateAuto)
     } finally {
       setSavingAuto(false)
     }
   }
 
   const handleDeleteAuto = async (id: string) => {
-    if (!confirm('Padam automasi ini?')) return
+    if (!confirm(t.roles.deleteConfirmAuto)) return
     try {
       await roles.deleteAutomation(id)
       await load()
@@ -132,19 +132,18 @@ export default function RolesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Peranan & Automasi</h1>
-        <p className="text-sm text-gray-500 mt-1">Urus peranan pengguna dan peraturan automasi</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t.roles.title}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t.roles.subtitle}</p>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
         {[
-          { id: 'roles', label: 'Peranan', icon: ShieldCheck },
-          { id: 'automations', label: 'Automasi', icon: Zap },
+          { id: 'roles', label: t.roles.tabRoles, icon: ShieldCheck },
+          { id: 'automations', label: t.roles.tabAutomations, icon: Zap },
         ].map(tab => (
           <button
             key={tab.id}
@@ -166,7 +165,6 @@ export default function RolesPage() {
         ))}
       </div>
 
-      {/* Roles Tab */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
           <div className="flex justify-end">
@@ -175,16 +173,16 @@ export default function RolesPage() {
               className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm"
             >
               <Plus size={14} />
-              Peranan Baru
+              {t.roles.newRole}
             </button>
           </div>
 
           {showRoleForm && (
             <form onSubmit={handleCreateRole} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-              <h2 className="font-semibold text-gray-800">Peranan Baru</h2>
+              <h2 className="font-semibold text-gray-800">{t.roles.newRole}</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Peranan</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.roles.roleName}</label>
                   <input
                     required
                     value={roleName}
@@ -195,7 +193,7 @@ export default function RolesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kebenaran <span className="text-gray-400 font-normal">(pisah koma)</span>
+                    {t.roles.permissions} <span className="text-gray-400 font-normal">{t.roles.permissionsHint}</span>
                   </label>
                   <input
                     value={rolePermissions}
@@ -212,10 +210,10 @@ export default function RolesPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]"
                 >
                   {savingRole && <Loader2 size={13} className="animate-spin" />}
-                  Simpan
+                  {t.common.save}
                 </button>
                 <button type="button" onClick={() => setShowRoleForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                  Batal
+                  {t.common.cancel}
                 </button>
               </div>
             </form>
@@ -225,7 +223,7 @@ export default function RolesPage() {
             {roleList.length === 0 ? (
               <div className="bg-white border border-gray-200 rounded-xl text-center py-12 text-gray-500">
                 <ShieldCheck size={36} className="mx-auto mb-3 text-gray-300" />
-                <p className="font-medium">Tiada peranan</p>
+                <p className="font-medium">{t.roles.noRoles}</p>
               </div>
             ) : roleList.map(role => (
               <div key={role.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -240,7 +238,7 @@ export default function RolesPage() {
                         <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">Default</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{role._count?.memberships ?? 0} ahli</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{role._count?.memberships ?? 0} {t.roles.members}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -259,7 +257,7 @@ export default function RolesPage() {
                 </div>
                 {expandedRole === role.id && (
                   <div className="border-t border-gray-100 px-5 py-4">
-                    <p className="text-xs font-medium text-gray-500 mb-2">Kebenaran:</p>
+                    <p className="text-xs font-medium text-gray-500 mb-2">{t.roles.expandPermissions}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {(Array.isArray(role.permissions) ? role.permissions : []).length > 0
                         ? (role.permissions as string[]).map(perm => (
@@ -267,7 +265,7 @@ export default function RolesPage() {
                               {perm}
                             </span>
                           ))
-                        : <span className="text-xs text-gray-400">Tiada kebenaran ditetapkan</span>}
+                        : <span className="text-xs text-gray-400">{t.roles.noPermissions}</span>}
                     </div>
                   </div>
                 )}
@@ -277,7 +275,6 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Automations Tab */}
       {activeTab === 'automations' && (
         <div className="space-y-4">
           <div className="flex justify-end">
@@ -286,16 +283,16 @@ export default function RolesPage() {
               className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm"
             >
               <Plus size={14} />
-              Automasi Baru
+              {t.roles.newAutomation}
             </button>
           </div>
 
           {showAutoForm && (
             <form onSubmit={handleCreateAuto} className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-              <h2 className="font-semibold text-gray-800">Automasi Baru</h2>
+              <h2 className="font-semibold text-gray-800">{t.roles.newAutomation}</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Automasi</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.roles.automationName}</label>
                   <input
                     required
                     value={autoName}
@@ -305,25 +302,25 @@ export default function RolesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pencetus (Trigger)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.roles.trigger}</label>
                   <select
                     value={autoTrigger}
                     onChange={e => setAutoTrigger(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   >
-                    {TRIGGERS.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
+                    {TRIGGERS.map(trig => (
+                      <option key={trig.value} value={trig.value}>{t.roles[trig.labelKey]}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Peranan Diassign</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.roles.assignedRole}</label>
                   <select
                     value={autoRoleId}
                     onChange={e => setAutoRoleId(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   >
-                    <option value="">-- Pilih Peranan --</option>
+                    <option value="">{t.roles.selectRole}</option>
                     {roleList.map(r => (
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
@@ -331,12 +328,12 @@ export default function RolesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Syarat <span className="text-gray-400 font-normal">(JSON, pilihan)</span>
+                    {t.roles.condition} <span className="text-gray-400 font-normal">{t.roles.conditionHint}</span>
                   </label>
                   <input
                     value={autoCondition}
                     onChange={e => setAutoCondition(e.target.value)}
-                    placeholder={'{"plan": "pro"}'}
+                    placeholder='{"plan": "pro"}'
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
                   />
                 </div>
@@ -348,10 +345,10 @@ export default function RolesPage() {
                   className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]"
                 >
                   {savingAuto && <Loader2 size={13} className="animate-spin" />}
-                  Simpan
+                  {t.common.save}
                 </button>
                 <button type="button" onClick={() => setShowAutoForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                  Batal
+                  {t.common.cancel}
                 </button>
               </div>
             </form>
@@ -361,18 +358,18 @@ export default function RolesPage() {
             {automationList.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Zap size={36} className="mx-auto mb-3 text-gray-300" />
-                <p className="font-medium">Tiada automasi</p>
-                <p className="text-sm mt-1">Cipta peraturan automasi assign peranan</p>
+                <p className="font-medium">{t.roles.noAutomations}</p>
+                <p className="text-sm mt-1">{t.roles.noAutomationsHint}</p>
               </div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Nama</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Pencetus</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Peranan</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Syarat</th>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.roles.name}</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.roles.triggerCol}</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.roles.role}</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.roles.conditionCol}</th>
+                    <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.common.status}</th>
                     <th className="px-5 py-3"></th>
                   </tr>
                 </thead>
@@ -387,11 +384,11 @@ export default function RolesPage() {
                       </td>
                       <td className="px-5 py-3 text-gray-700">{auto.role.name}</td>
                       <td className="px-5 py-3 font-mono text-xs text-gray-500">
-                        {Object.keys(auto.condition).length > 0 ? JSON.stringify(auto.condition) : '—'}
+                        {Object.keys(auto.condition).length > 0 ? JSON.stringify(auto.condition) : '\u2014'}
                       </td>
                       <td className="px-5 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded ${auto.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {auto.isActive ? 'Aktif' : 'Tidak Aktif'}
+                          {auto.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right">

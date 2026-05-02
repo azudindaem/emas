@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { coupons } from '@/lib/api'
+import { useLocale } from '@/lib/locale'
 import { Tag, Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react'
 
 interface Coupon {
@@ -32,6 +33,7 @@ const defaultForm = {
 }
 
 export default function CouponsPage() {
+  const { t } = useLocale()
   const [items, setItems] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -44,7 +46,7 @@ export default function CouponsPage() {
       const data = await coupons.list()
       setItems(data as Coupon[])
     } catch {
-      setError('Gagal memuatkan kupon')
+      setError(t.coupons.failedLoad)
     } finally {
       setLoading(false)
     }
@@ -73,6 +75,7 @@ export default function CouponsPage() {
       await load()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal mencipta kupon')
+      setError(e instanceof Error ? e.message : t.coupons.failedCreate)
     } finally {
       setSaving(false)
     }
@@ -87,6 +90,7 @@ export default function CouponsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Padam kupon ini?')) return
+      if (!confirm(t.coupons.deleteConfirm)) return
     try {
       await coupons.delete(id)
       await load()
@@ -99,13 +103,14 @@ export default function CouponsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kupon Diskaun</h1>
           <p className="text-sm text-gray-500 mt-1">Urus kupon promosi untuk pelanggan</p>
+                  <p className="text-sm text-gray-500 mt-1">{t.coupons.subtitle}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors"
         >
           <Plus size={16} />
-          Kupon Baru
+          {t.coupons.newCoupon}
         </button>
       </div>
 
@@ -116,9 +121,11 @@ export default function CouponsPage() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <h2 className="font-semibold text-gray-800">Kupon Baru</h2>
+                    <h2 className="font-semibold text-gray-800">{t.coupons.newCoupon}</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kod Kupon</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.couponCode}</label>
               <input
                 required
                 value={form.code}
@@ -129,13 +136,14 @@ export default function CouponsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Jenis</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.type}</label>
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value as 'PERCENTAGE' | 'FIXED' }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               >
-                <option value="PERCENTAGE">Peratusan (%)</option>
-                <option value="FIXED">Tetap (RM)</option>
+                <option value="PERCENTAGE">{t.coupons.percentage}</option>
+                <option value="FIXED">{t.coupons.fixed}</option>
               </select>
             </div>
             <div>
@@ -154,43 +162,47 @@ export default function CouponsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Min. Pesanan (RM)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.minOrder}</label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.minOrderAmount}
                 onChange={e => setForm(f => ({ ...f, minOrderAmount: e.target.value }))}
-                placeholder="Tiada had"
+                placeholder={t.coupons.noLimit}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </div>
             {form.type === 'PERCENTAGE' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Maks. Diskaun (RM)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.maxDiscount}</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={form.maxDiscount}
                   onChange={e => setForm(f => ({ ...f, maxDiscount: e.target.value }))}
-                  placeholder="Tiada had"
+                  placeholder={t.coupons.noLimit}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 />
               </div>
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Had Penggunaan</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.usageLimit}</label>
               <input
                 type="number"
                 min="1"
                 value={form.usageLimit}
                 onChange={e => setForm(f => ({ ...f, usageLimit: e.target.value }))}
-                placeholder="Tiada had"
+                placeholder={t.coupons.noLimit}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mula</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.starts}</label>
               <input
                 type="datetime-local"
                 value={form.startsAt}
@@ -200,6 +212,7 @@ export default function CouponsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tamat</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.coupons.end}</label>
               <input
                 type="datetime-local"
                 value={form.expiresAt}
@@ -215,14 +228,14 @@ export default function CouponsPage() {
               className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] disabled:opacity-50 transition-colors text-sm"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
-              Simpan Kupon
+              {t.coupons.saveCoupon}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
               className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors"
             >
-              Batal
+              {t.common.cancel}
             </button>
           </div>
         </form>
@@ -238,17 +251,18 @@ export default function CouponsPage() {
             <Tag size={40} className="mx-auto mb-3 text-gray-300" />
             <p className="font-medium">Tiada kupon</p>
             <p className="text-sm mt-1">Buat kupon diskaun pertama anda</p>
+                      <p className="text-sm mt-1">{t.coupons.noCouponsHint}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-5 py-3 font-semibold text-gray-600">Kod</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Jenis</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Nilai</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Penggunaan</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Tamat</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Status</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.coupons.type}</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.coupons.value}</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.coupons.usage}</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.coupons.expires}</th>
+                <th className="text-left px-5 py-3 font-semibold text-gray-600">{t.common.status}</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
@@ -275,8 +289,8 @@ export default function CouponsPage() {
                   <td className="px-5 py-3">
                     <button onClick={() => toggleActive(item)} className="flex items-center gap-1.5 text-xs">
                       {item.isActive
-                        ? <><ToggleRight size={18} className="text-green-500" /><span className="text-green-600">Aktif</span></>
-                        : <><ToggleLeft size={18} className="text-gray-400" /><span className="text-gray-400">Tidak Aktif</span></>}
+                        ? <><ToggleRight size={18} className="text-green-500" /><span className="text-green-600">{t.coupons.active}</span></>
+                        : <><ToggleLeft size={18} className="text-gray-400" /><span className="text-gray-400">{t.coupons.inactive}</span></>}
                     </button>
                   </td>
                   <td className="px-5 py-3 text-right">

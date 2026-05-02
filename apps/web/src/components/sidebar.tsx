@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
+import { useLocale } from '@/lib/locale'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -21,25 +22,26 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
-const navItems = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/dashboard/orders', label: 'Pesanan', icon: ShoppingCart },
-  { href: '/dashboard/products', label: 'Produk', icon: Package },
-  { href: '/dashboard/inventory', label: 'Inventori', icon: Warehouse },
-  { href: '/dashboard/shipping', label: 'Penghantaran', icon: Truck },
-  { href: '/dashboard/invoices', label: 'Invois', icon: FileText },
-  { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
-  { href: '/dashboard/commission', label: 'Komisen', icon: TrendingUp },
-  { href: '/dashboard/coupons', label: 'Kupon', icon: Tag },
-  { href: '/dashboard/brands', label: 'Brand', icon: Palette },
-  { href: '/dashboard/roles', label: 'Peranan', icon: ShieldCheck },
-  { href: '/dashboard/team', label: 'Pasukan', icon: Users },
-  { href: '/dashboard/notifications', label: 'Notifikasi', icon: Bell },
-]
-
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const { t } = useLocale()
+
+  const navItems = [
+    { href: '/dashboard', label: t.nav.overview, icon: LayoutDashboard },
+    { href: '/dashboard/orders', label: t.nav.orders, icon: ShoppingCart },
+    { href: '/dashboard/products', label: t.nav.products, icon: Package },
+    { href: '/dashboard/inventory', label: t.nav.inventory, icon: Warehouse },
+    { href: '/dashboard/shipping', label: t.nav.shipping, icon: Truck },
+    { href: '/dashboard/invoices', label: t.nav.invoices, icon: FileText },
+    { href: '/dashboard/wallet', label: t.nav.wallet, icon: Wallet },
+    { href: '/dashboard/commission', label: t.nav.commission, icon: TrendingUp },
+    { href: '/dashboard/coupons', label: t.nav.coupons, icon: Tag },
+    { href: '/dashboard/brands', label: t.nav.brands, icon: Palette },
+    { href: '/dashboard/roles', label: t.nav.roles, icon: ShieldCheck },
+    { href: '/dashboard/team', label: t.nav.team, icon: Users },
+    { href: '/dashboard/notifications', label: t.nav.notifications, icon: Bell },
+  ]
 
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-[#1a1a2e] text-white">
@@ -89,7 +91,7 @@ export function Sidebar() {
           className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
         >
           <LogOut size={16} />
-          Log Keluar
+          {t.nav.logout}
         </button>
       </div>
     </aside>

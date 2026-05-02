@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { auth, setToken, clearToken } from '@/lib/api'
+import { LocaleProvider } from '@/lib/locale'
 
 interface User {
   id: string
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login'
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  return <LocaleProvider><AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
 }
 
 export function useAuth() {

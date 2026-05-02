@@ -91,6 +91,22 @@ export class CreateProductDto {
   status?: ProductStatusDto
 
   @IsOptional()
+  @IsString()
+  tags?: string
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQty?: number
+
+  @IsOptional()
+  isFeatured?: boolean
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateVariationDto)
@@ -122,6 +138,22 @@ export class UpdateProductDto {
   @IsOptional()
   @IsEnum(ProductStatusDto)
   status?: ProductStatusDto
+
+  @IsOptional()
+  @IsString()
+  tags?: string
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minOrderQty?: number
+
+  @IsOptional()
+  isFeatured?: boolean
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string
 }
 
 export class ListProductQueryDto {
@@ -134,14 +166,22 @@ export class ListProductQueryDto {
   status?: ProductStatusDto
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1
+  @IsString()
+  categoryId?: string
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  limit?: number = 20
+  page?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number
 }

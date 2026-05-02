@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { invoices as invoicesApi } from '@/lib/api'
 import { Badge, Pagination } from '@/components/ui'
+import { useLocale } from '@/lib/locale'
 import { Plus, X, Loader2, Eye } from 'lucide-react'
 
 interface InvoiceItem {
@@ -39,6 +40,7 @@ const statusColor: Record<string, 'yellow' | 'green' | 'red' | 'gray' | 'blue'> 
 }
 
 export default function InvoicesPage() {
+  const { t } = useLocale()
   const [items, setItems] = useState<Invoice[]>([])
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 })
   const [page, setPage] = useState(1)
@@ -68,7 +70,7 @@ export default function InvoicesPage() {
     try {
       await invoicesApi.generate({ orderId: form.orderId, type: form.type })
       setShowForm(false); load()
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Gagal jana invois') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t.invoices.failedGenerate) }
     finally { setSaving(false) }
   }
 
@@ -81,11 +83,11 @@ export default function InvoicesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Invois</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Jumlah: {meta.total} invois</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.invoices.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{meta.total} {t.invoices.title.toLowerCase()}</p>
         </div>
         <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm">
-          <Plus size={15} />Jana Invois
+          <Plus size={15} />{t.invoices.generateBtn}
         </button>
       </div>
 
@@ -94,40 +96,40 @@ export default function InvoicesPage() {
       {showForm && (
         <form onSubmit={handleGenerate} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800">Jana Invois Baru</h2>
+            <h2 className="font-semibold text-gray-800">{t.invoices.generateNew}</h2>
             <button type="button" onClick={() => setShowForm(false)}><X size={18} className="text-gray-400 hover:text-gray-700" /></button>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID Pesanan</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.invoices.orderId}</label>
               <input required value={form.orderId} onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ID pesanan (UUID)" />
-              <p className="text-xs text-gray-400 mt-1">Masukkan ID pesanan dari senarai pesanan</p>
+              <p className="text-xs text-gray-400 mt-1">{t.invoices.orderIdHint}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Invois</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.invoices.invoiceType}</label>
               <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                {INVOICE_TYPES.map(t => <option key={t} value={t}>{t === 'SELLER' ? 'Penjual' : 'Pelanggan'}</option>)}
+                {INVOICE_TYPES.map(tp => <option key={tp} value={tp}>{tp === 'SELLER' ? t.invoices.seller : t.invoices.buyer}</option>)}
               </select>
             </div>
           </div>
           <div className="flex gap-3">
             <button type="submit" disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
-              {saving && <Loader2 size={13} className="animate-spin" />}Jana
+              {saving && <Loader2 size={13} className="animate-spin" />}{t.invoices.generate}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Batal</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
           </div>
         </form>
       )}
 
       <div className="flex gap-3">
-        <input type="text" placeholder="Cari no. invois / pesanan..." value={search}
+        <input type="text" placeholder={t.invoices.searchPlaceholder} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] w-64" />
         <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]">
-          <option value="">Semua Jenis</option>
+          <option value="">{t.invoices.allTypes}</option>
           {INVOICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
@@ -139,14 +141,14 @@ export default function InvoicesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['No. Invois', 'No. Pesanan', 'Pelanggan', 'Jenis', 'Jumlah', 'Status', 'Tarikh', ''].map(h => (
+                    {[t.invoices.invoiceNo, t.invoices.orderNo, t.invoices.customer, t.invoices.type, t.invoices.amount, t.common.status, t.invoices.date, ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center py-12 text-gray-400">Tiada invois</td></tr>
+                    <tr><td colSpan={8} className="text-center py-12 text-gray-400">{t.invoices.noInvoices}</td></tr>
                   ) : items.map(inv => (
                     <tr key={inv.id} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected?.id === inv.id ? 'bg-yellow-50' : ''}`}
                       onClick={() => openDetail(inv.id)}>
@@ -197,19 +199,19 @@ export default function InvoicesPage() {
               </div>
             )}
             <div className="px-5 py-4 space-y-1.5 text-sm">
-              <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>RM {Number(selected.subtotal).toFixed(2)}</span></div>
+              <div className="flex justify-between text-gray-600"><span>{t.common.total}</span><span>RM {Number(selected.subtotal).toFixed(2)}</span></div>
               {Number(selected.tax) > 0 && (
-                <div className="flex justify-between text-gray-600"><span>Cukai</span><span>RM {Number(selected.tax).toFixed(2)}</span></div>
+                <div className="flex justify-between text-gray-600"><span>{t.invoices.tax}</span><span>RM {Number(selected.tax).toFixed(2)}</span></div>
               )}
               {Number(selected.discount) > 0 && (
-                <div className="flex justify-between text-red-600"><span>Diskaun</span><span>-RM {Number(selected.discount).toFixed(2)}</span></div>
+                <div className="flex justify-between text-red-600"><span>{t.invoices.discount}</span><span>-RM {Number(selected.discount).toFixed(2)}</span></div>
               )}
               <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
-                <span>Jumlah</span><span>RM {Number(selected.total).toFixed(2)}</span>
+                <span>{t.common.total}</span><span>RM {Number(selected.total).toFixed(2)}</span>
               </div>
             </div>
             <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-              Dijana: {new Date(selected.createdAt).toLocaleString('ms-MY')}
+              {t.invoices.generated}: {new Date(selected.createdAt).toLocaleString('en-MY')}
             </div>
           </div>
         )}

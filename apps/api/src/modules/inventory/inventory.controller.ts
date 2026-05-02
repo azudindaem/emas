@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
@@ -9,9 +9,12 @@ import { RbacGuard } from '../../common/guards/rbac.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
 import {
   AdjustStockDto,
+  CreateWarehouseDto,
+  ListMovementQueryDto,
   ListStockQueryDto,
   ReleaseStockDto,
   ReserveStockDto,
+  UpdateWarehouseDto,
 } from './dto/inventory.dto'
 import { InventoryService } from './inventory.service'
 import { OwnerResolverService } from '../../common/services/owner-resolver.service'
@@ -25,6 +28,14 @@ export class InventoryController {
     private readonly inventoryService: InventoryService,
     private readonly ownerResolver: OwnerResolverService,
   ) {}
+
+  @Get('summary')
+  @UseGuards(RbacGuard)
+  @RequirePermission('inventory.read')
+  async summary(@CurrentTenant() tenant: TenantContext, @CurrentUser() user: JwtUser) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.inventoryService.summary(tenant.id, ownerId)
+  }
 
   @Get('stocks')
   @UseGuards(RbacGuard)
@@ -80,9 +91,58 @@ export class InventoryController {
   async movementLogs(
     @CurrentTenant() tenant: TenantContext,
     @CurrentUser() user: JwtUser,
-    @Query('variationId') variationId?: string,
+    @Query() query: ListMovementQueryDto,
   ) {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
-    return this.inventoryService.movementLogs(tenant.id, ownerId, variationId)
+    return this.inventoryService.movementLogs(tenant.id, ownerId, query)
+  }
+
+  // ─── Warehouse CRUD ──────────────────────────────────────────
+  @Get('warehouses')
+  @UseGuards(RbacGuard)
+  @RequirePermission('inventory.read')
+  async listWarehouses(@CurrentTenant() tenant: TenantContext, @CurrentUser() user: JwtUser) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.inventoryService.listWarehouses(tenant.id, ownerId)
+  }
+
+  @Post('warehouses')
+  @UseGuards(RbacGuard)
+  @RequirePermission('inventory.write')
+  async createWarehouse(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: CreateWarehouseDto,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.inventoryService.createWarehouse(tenant.id, ownerId, dto)
+  }
+
+  @Patch('warehouses/:id')
+  @UseGuards(RbacGuard)
+  @RequirePermission('inventory.write')
+  async updateWarehouse(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateWarehouseDto,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    const result = await this.inventoryService.updateWarehouse(tenant.id, ownerId, id, dto)
+    if (!result) throw new NotFoundException('Warehouse not found')
+    return result
+  }
+
+  @Delete('warehouses/:id')
+  @UseGuards(RbacGuard)
+  @RequirePermission('inventory.write')
+  async deleteWarehouse(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Param('id') id: string,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    await this.inventoryService.deleteWarehouse(tenant.id, ownerId, id)
+    return { success: true }
   }
 }

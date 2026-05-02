@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { orders, products, inventory, shipping, wallet } from '@/lib/api'
 import { StatCard } from '@/components/ui'
+import { useLocale } from '@/lib/locale'
 import { ShoppingCart, Package, Warehouse, Truck, Wallet, TrendingUp } from 'lucide-react'
 
 interface Stats {
@@ -13,6 +14,7 @@ interface Stats {
 }
 
 export default function DashboardPage() {
+  const { t } = useLocale()
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOrders, setRecentOrders] = useState<unknown[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,25 +72,25 @@ export default function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Jumlah Pesanan"
+          label={t.dashboard.totalOrders}
           value={stats?.totalOrders ?? 0}
           icon={<ShoppingCart size={18} />}
           color="bg-blue-500"
         />
         <StatCard
-          label="Jumlah Produk"
+          label={t.dashboard.totalProducts}
           value={stats?.totalProducts ?? 0}
           icon={<Package size={18} />}
           color="bg-purple-500"
         />
         <StatCard
-          label="Penghantaran Pending"
+          label={t.dashboard.pendingShipments}
           value={stats?.pendingShipments ?? 0}
           icon={<Truck size={18} />}
           color="bg-orange-500"
         />
         <StatCard
-          label="Jumlah Wallet"
+          label={t.dashboard.totalWallet}
           value={`RM ${(stats?.totalWalletBalances ?? 0).toFixed(2)}`}
           icon={<Wallet size={18} />}
           color="bg-green-500"
@@ -98,13 +100,13 @@ export default function DashboardPage() {
       {/* Recent Orders */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">Pesanan Terkini</h2>
+          <h2 className="font-semibold text-gray-800">{t.dashboard.recentOrders}</h2>
           <a href="/dashboard/orders" className="text-xs text-[#d4a017] hover:underline">
-            Lihat semua →
+            {t.dashboard.viewAll}
           </a>
         </div>
         {recentOrders.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-gray-400">Tiada pesanan lagi</div>
+          <div className="px-5 py-10 text-center text-sm text-gray-400">{t.dashboard.noOrders}</div>
         ) : (
           <div className="divide-y divide-gray-50">
             {(recentOrders as Array<{ id: string; orderNo: string; customerName: string; total: number; status: string; paymentStatus: string }>).map((order) => (
@@ -126,12 +128,12 @@ export default function DashboardPage() {
       {/* Quick Links */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { href: '/dashboard/orders', label: 'Urus Pesanan', icon: ShoppingCart, color: 'bg-blue-50 text-blue-600' },
-          { href: '/dashboard/products', label: 'Urus Produk', icon: Package, color: 'bg-purple-50 text-purple-600' },
-          { href: '/dashboard/inventory', label: 'Inventori', icon: Warehouse, color: 'bg-yellow-50 text-yellow-600' },
-          { href: '/dashboard/shipping', label: 'Penghantaran', icon: Truck, color: 'bg-orange-50 text-orange-600' },
-          { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet, color: 'bg-green-50 text-green-600' },
-          { href: '/dashboard/commission', label: 'Komisen', icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
+          { href: '/dashboard/orders', label: t.dashboard.manageOrders, icon: ShoppingCart, color: 'bg-blue-50 text-blue-600' },
+          { href: '/dashboard/products', label: t.dashboard.manageProducts, icon: Package, color: 'bg-purple-50 text-purple-600' },
+          { href: '/dashboard/inventory', label: t.nav.inventory, icon: Warehouse, color: 'bg-yellow-50 text-yellow-600' },
+          { href: '/dashboard/shipping', label: t.nav.shipping, icon: Truck, color: 'bg-orange-50 text-orange-600' },
+          { href: '/dashboard/wallet', label: t.nav.wallet, icon: Wallet, color: 'bg-green-50 text-green-600' },
+          { href: '/dashboard/commission', label: t.nav.commission, icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
         ].map(({ href, label, icon: Icon, color }) => (
           <a
             key={href}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { wallet as walletApi } from '@/lib/api'
 import { Table, Badge, Pagination, StatCard } from '@/components/ui'
+import { useLocale } from '@/lib/locale'
 import { Wallet } from 'lucide-react'
 
 type WalletEntry = { id: string; balance: number; holdBalance: number; user: { name: string; email: string } }
@@ -28,6 +29,7 @@ const txTypeColor: Record<string, 'green' | 'red' | 'blue' | 'purple' | 'gray'> 
 }
 
 export default function WalletPage() {
+  const { t } = useLocale()
   const [tab, setTab] = useState<'balances' | 'transactions'>('balances')
   const [balances, setBalances] = useState<WalletEntry[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -77,26 +79,26 @@ export default function WalletPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-gray-800">Wallet</h2>
-        <p className="text-sm text-gray-400">Baki dan transaksi wallet ahli</p>
+        <p className="text-sm text-gray-400">{t.wallet.subtitle}</p>
       </div>
 
       <StatCard
-        label="Jumlah Baki Wallet"
+        label={t.wallet.totalBalance}
         value={`RM ${totalBalance.toFixed(2)}`}
         icon={<Wallet size={18} />}
         color="bg-green-500"
       />
 
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {(['balances', 'transactions'] as const).map((t) => (
+        {(['balances', 'transactions'] as const).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => { setTab(t); setPage(1) }}
+            key={tabKey}
+            onClick={() => { setTab(tabKey); setPage(1) }}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tab === t ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === tabKey ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'balances' ? 'Baki Ahli' : 'Transaksi'}
+            {tabKey === 'balances' ? t.wallet.tabBalances : t.wallet.tabTransactions}
           </button>
         ))}
       </div>
@@ -105,16 +107,16 @@ export default function WalletPage() {
         <div className="h-64 bg-gray-100 rounded-xl animate-pulse" />
       ) : tab === 'balances' ? (
         <Table
-          headers={['Nama', 'E-mel', 'Baki', 'Ditahan', 'Tersedia']}
+          headers={[t.wallet.name, t.wallet.email, t.wallet.balance, t.wallet.held, t.wallet.available]}
           rows={balanceRows}
-          empty="Tiada wallet ahli"
+          empty={t.wallet.noWallets}
         />
       ) : (
         <>
           <Table
-            headers={['Jenis', 'Amaun', 'Baki Selepas', 'Nota', 'Tarikh']}
+            headers={[t.wallet.txType, t.wallet.amount, t.wallet.balanceAfter, t.wallet.note, t.wallet.date]}
             rows={txRows}
-            empty="Tiada transaksi"
+            empty={t.wallet.noTransactions}
           />
           <Pagination page={meta.page} totalPages={meta.totalPages} onChange={setPage} />
         </>

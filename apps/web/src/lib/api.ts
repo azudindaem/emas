@@ -75,9 +75,11 @@ export const orders = {
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 export const products = {
+  summary: () => request<{ totalProducts: number; totalVariations: number; totalStock: number; lowStock: number }>('/product/summary'),
+  categories: () => request<string[]>('/product/categories'),
   list: (params?: Record<string, string | number>) => {
     const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
-    return request<{ items: unknown[]; meta: unknown }>(`/product${q}`)
+    return request<{ items: unknown[]; meta: { page: number; totalPages: number; total: number } }>(`/product${q}`)
   },
   get: (id: string) => request<unknown>(`/product/${id}`),
   create: (data: unknown) => request<unknown>('/product', { method: 'POST', body: JSON.stringify(data) }),
@@ -89,20 +91,42 @@ export const products = {
     request<unknown>(`/product/${productId}/variations/${variationId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteVariation: (productId: string, variationId: string) =>
     request<unknown>(`/product/${productId}/variations/${variationId}`, { method: 'DELETE' }),
+  exportCsv: () => request<string>('/product/export'),
+  importCsv: (csv: string) => request<{ created: number; skipped: number; errors: string[] }>('/product/import', { method: 'POST', body: JSON.stringify({ csv }) }),
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/upload/product', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload gagal' }))
+      throw new Error(err.error ?? 'Upload gagal')
+    }
+    return res.json()
+  },
 }
 
 // ─── Inventory ────────────────────────────────────────────────────────────────
 
 export const inventory = {
+  summary: () => request<{ totalStocks: number; lowStocks: number; warehouses: number }>('/inventory/summary'),
   stocks: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
-    return request<{ items: unknown[]; meta: unknown }>(`/inventory/stocks${q}`)
+    return request<{ items: unknown[]; meta: { page: number; totalPages: number; total: number } }>(`/inventory/stocks${q}`)
   },
   movements: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
-    return request<{ items: unknown[]; meta: unknown }>(`/inventory/movements${q}`)
+    return request<{ items: unknown[]; meta: { page: number; totalPages: number; total: number } }>(`/inventory/movements${q}`)
   },
   adjust: (data: unknown) => request<unknown>('/inventory/stocks/adjust', { method: 'POST', body: JSON.stringify(data) }),
+  warehouses: () => request<unknown[]>('/inventory/warehouses'),
+  createWarehouse: (data: unknown) => request<unknown>('/inventory/warehouses', { method: 'POST', body: JSON.stringify(data) }),
+  updateWarehouse: (id: string, data: unknown) => request<unknown>(`/inventory/warehouses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteWarehouse: (id: string) => request<unknown>(`/inventory/warehouses/${id}`, { method: 'DELETE' }),
 }
 
 // ─── Shipping ─────────────────────────────────────────────────────────────────

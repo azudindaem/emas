@@ -1,9 +1,10 @@
 import {
   Body, Controller, Delete, Get, NotFoundException, Param,
-  Patch, Post, Query, UseGuards,
+  Patch, Post, Query, Res, UseGuards,
 } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
+import type { Response } from 'express'
 import { ProductService } from './product.service'
 import {
   CreateProductDto, CreateVariationDto, ListProductQueryDto,
@@ -37,6 +38,49 @@ export class ProductController {
   ) {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
     return this.productService.list(tenant.id, ownerId, query)
+  }
+
+  @Get('summary')
+  @UseGuards(RbacGuard)
+  @RequirePermission('product.read')
+  async summary(@CurrentTenant() tenant: TenantContext, @CurrentUser() user: JwtUser) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.productService.summary(tenant.id, ownerId)
+  }
+
+  @Get('categories')
+  @UseGuards(RbacGuard)
+  @RequirePermission('product.read')
+  async categories(@CurrentTenant() tenant: TenantContext, @CurrentUser() user: JwtUser) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.productService.listCategories(tenant.id, ownerId)
+  }
+
+  @Get('export')
+  @UseGuards(RbacGuard)
+  @RequirePermission('product.read')
+  async exportCsv(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Res() res: Response,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    const csv = await this.productService.exportCsv(tenant.id, ownerId)
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', 'attachment; filename="products.csv"')
+    res.send(csv)
+  }
+
+  @Post('import')
+  @UseGuards(RbacGuard)
+  @RequirePermission('product.write')
+  async importCsv(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Body() body: { csv: string },
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.productService.importCsv(tenant.id, ownerId, body.csv)
   }
 
   @Get(':id')

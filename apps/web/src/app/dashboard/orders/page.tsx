@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { orders as ordersApi } from '@/lib/api'
 import { Badge, Pagination } from '@/components/ui'
+import { useLocale } from '@/lib/locale'
 import { Eye, X, Loader2, ChevronDown } from 'lucide-react'
 
 interface OrderItem {
@@ -44,6 +45,7 @@ const paymentColor: Record<string, 'gray' | 'green' | 'red' | 'yellow'> = {
 }
 
 export default function OrdersPage() {
+  const { t } = useLocale()
   const [items, setItems] = useState<Order[]>([])
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 })
   const [page, setPage] = useState(1)
@@ -83,7 +85,7 @@ export default function OrdersPage() {
       const updated = await ordersApi.updateStatus(selected.id, newStatus) as Order
       setSelected(updated)
       load()
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Gagal kemaskini') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t.orders.failedUpdate) }
     finally { setUpdatingStatus(false) }
   }
 
@@ -94,7 +96,7 @@ export default function OrdersPage() {
       const updated = await ordersApi.updatePaymentStatus(selected.id, newPayment) as Order
       setSelected(updated)
       load()
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Gagal kemaskini') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : t.orders.failedUpdate) }
     finally { setUpdatingPayment(false) }
   }
 
@@ -102,8 +104,8 @@ export default function OrdersPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pesanan</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Jumlah: {meta.total} pesanan</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.orders.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{meta.total} {t.orders.title.toLowerCase()}</p>
         </div>
       </div>
 
@@ -111,12 +113,12 @@ export default function OrdersPage() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <input type="text" placeholder="Cari no. pesanan / pelanggan..." value={search}
+        <input type="text" placeholder={t.orders.searchPlaceholder} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] w-64" />
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]">
-          <option value="">Semua Status</option>
+          <option value="">{t.orders.allStatus}</option>
           {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -129,14 +131,14 @@ export default function OrdersPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['No. Pesanan', 'Pelanggan', 'Jumlah', 'Status', 'Bayar', 'Tarikh', ''].map(h => (
+                    {[t.orders.orderNo, t.orders.customer, t.orders.amount, t.common.status, t.orders.payment, t.orders.date, ''].map(h => (
                       <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-12 text-gray-400">Tiada pesanan</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-gray-400">{t.orders.noOrders}</td></tr>
                   ) : items.map(o => (
                     <tr key={o.id} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected?.id === o.id ? 'bg-yellow-50' : ''}`} onClick={() => openDetail(o.id)}>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-[#d4a017]">{o.orderNo}</td>
@@ -172,7 +174,7 @@ export default function OrdersPage() {
             {/* Status Update */}
             <div className="px-5 py-4 border-b border-gray-100 space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Status Pesanan</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t.orders.orderStatus}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <select value={newStatus} onChange={e => setNewStatus(e.target.value)}
@@ -183,12 +185,12 @@ export default function OrdersPage() {
                   </div>
                   <button onClick={handleUpdateStatus} disabled={updatingStatus || newStatus === selected.status}
                     className="px-3 py-2 bg-[#d4a017] text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-[#b8891a]">
-                    {updatingStatus ? <Loader2 size={13} className="animate-spin" /> : 'Kemaskini'}
+                    {updatingStatus ? <Loader2 size={13} className="animate-spin" /> : t.orders.update}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Status Pembayaran</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">{t.orders.paymentStatus}</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <select value={newPayment} onChange={e => setNewPayment(e.target.value)}
@@ -199,7 +201,7 @@ export default function OrdersPage() {
                   </div>
                   <button onClick={handleUpdatePayment} disabled={updatingPayment || newPayment === selected.paymentStatus}
                     className="px-3 py-2 bg-[#d4a017] text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-[#b8891a]">
-                    {updatingPayment ? <Loader2 size={13} className="animate-spin" /> : 'Kemaskini'}
+                    {updatingPayment ? <Loader2 size={13} className="animate-spin" /> : t.orders.update}
                   </button>
                 </div>
               </div>
@@ -207,7 +209,7 @@ export default function OrdersPage() {
 
             {/* Items */}
             <div className="px-5 py-4 border-b border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Item Pesanan</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t.orders.orderItems}</p>
               <div className="space-y-2">
                 {selected.items.map(item => (
                   <div key={item.id} className="flex justify-between text-sm">
@@ -224,19 +226,19 @@ export default function OrdersPage() {
             {/* Totals */}
             <div className="px-5 py-4 space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>RM {Number(selected.subtotal).toFixed(2)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>Penghantaran</span><span>RM {Number(selected.shippingFee).toFixed(2)}</span></div>
+              <div className="flex justify-between text-gray-600"><span>{t.orders.shippingFee}</span><span>RM {Number(selected.shippingFee).toFixed(2)}</span></div>
               {Number(selected.discount) > 0 && (
-                <div className="flex justify-between text-red-600"><span>Diskaun</span><span>-RM {Number(selected.discount).toFixed(2)}</span></div>
+                <div className="flex justify-between text-red-600"><span>{t.orders.discount}</span><span>-RM {Number(selected.discount).toFixed(2)}</span></div>
               )}
               <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
-                <span>Jumlah</span><span>RM {Number(selected.total).toFixed(2)}</span>
+                <span>{t.common.total}</span><span>RM {Number(selected.total).toFixed(2)}</span>
               </div>
             </div>
 
             {/* Shipping Address */}
             {selected.shippingAddress && (
               <div className="px-5 py-4 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Alamat Penghantaran</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t.orders.shippingAddress}</p>
                 <p className="text-xs text-gray-600">{typeof selected.shippingAddress === 'object'
                   ? Object.values(selected.shippingAddress).filter(Boolean).join(', ')
                   : String(selected.shippingAddress)}</p>
@@ -244,7 +246,7 @@ export default function OrdersPage() {
             )}
             {selected.notes && (
               <div className="px-5 py-4 border-t border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Nota</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t.orders.notes}</p>
                 <p className="text-xs text-gray-600">{selected.notes}</p>
               </div>
             )}

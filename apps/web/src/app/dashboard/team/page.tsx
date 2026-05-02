@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { team as teamApi } from '@/lib/api'
 import { Table } from '@/components/ui'
+import { useLocale } from '@/lib/locale'
 
 type Member = {
   id: string
@@ -19,6 +20,7 @@ type Role = {
 }
 
 export default function TeamPage() {
+  const { t } = useLocale()
   const [tab, setTab] = useState<'members' | 'roles'>('members')
   const [members, setMembers] = useState<Member[]>([])
   const [roles, setRoles] = useState<Role[]>([])
@@ -51,20 +53,20 @@ export default function TeamPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-800">Pasukan</h2>
-        <p className="text-sm text-gray-400">Urus ahli dan peranan</p>
+        <h2 className="text-lg font-semibold text-gray-800">{t.team.title}</h2>
+        <p className="text-sm text-gray-400">{t.team.subtitle}</p>
       </div>
 
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {(['members', 'roles'] as const).map((t) => (
+        {(['members', 'roles'] as const).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tab === t ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === tabKey ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'members' ? 'Ahli' : 'Peranan'}
+            {tabKey === 'members' ? t.team.tabMembers : t.team.tabRoles}
           </button>
         ))}
       </div>
@@ -73,15 +75,15 @@ export default function TeamPage() {
         <div className="h-64 bg-gray-100 rounded-xl animate-pulse" />
       ) : tab === 'members' ? (
         <Table
-          headers={['Nama', 'E-mel', 'Peranan', 'Tarikh Sertai']}
+          headers={[t.team.name, t.team.email, t.team.role, t.team.joinedAt]}
           rows={memberRows}
-          empty="Tiada ahli pasukan"
+          empty={t.team.noMembers}
         />
       ) : (
         <Table
-          headers={['Nama Peranan', 'Bilangan Ahli', 'Kebenaran']}
+          headers={[t.team.roleName, t.team.memberCount, t.team.rolesPermissions]}
           rows={roleRows}
-          empty="Tiada peranan ditakrifkan"
+          empty={t.team.noRoles}
         />
       )}
     </div>

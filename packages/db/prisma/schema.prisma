@@ -198,6 +198,10 @@ model Product {
   description String?
   categoryId  String?
   status      ProductStatus @default(ACTIVE)
+  tags        String?
+  minOrderQty Int?
+  isFeatured  Boolean  @default(false)
+  imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
