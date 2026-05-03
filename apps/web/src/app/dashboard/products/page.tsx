@@ -92,9 +92,9 @@ function ImageDropZone({
     </div>
   )
 }
-import { Badge, Pagination } from '@/components/ui'
+import { Pagination } from '@/components/ui'
 import {
-  Plus, Loader2, X, ChevronDown, ChevronUp, Trash2, Edit2, Check,
+  Plus, Loader2, X, ChevronDown, ChevronUp, Trash2, Edit2, Check, Copy,
   Package, Layers, Download, Upload, AlertTriangle, BarChart3,
   Info, ImageIcon, Truck, Eye, Star, Tag,
 } from 'lucide-react'
@@ -176,7 +176,6 @@ interface Summary { totalProducts: number; totalVariations: number; totalStock: 
 interface Brand { id: string; name: string; logoUrl?: string | null }
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ARCHIVED']
-const statusColor: Record<string, 'green' | 'gray' | 'red'> = { ACTIVE: 'green', INACTIVE: 'gray', ARCHIVED: 'red' }
 const emptyVariationRow = () => ({ sku: '', name: '', price: '', weight: '' })
 type ProductType = 'simple' | 'variations'
 type EditTab = 'basic' | 'detail' | 'shipping' | 'visibility'
@@ -201,6 +200,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('created_desc')
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const [globalError, setGlobalError] = useState('')
 
   // Create wizard
@@ -447,6 +447,43 @@ export default function ProductsPage() {
     try { await productsApi.delete(id); load(); loadSummary() } catch { /* ignore */ }
   }
 
+  const duplicateProduct = async (p: Product) => {
+    setDuplicatingId(p.id)
+    setGlobalError('')
+    try {
+      const stamp = Date.now().toString().slice(-4)
+      const copiedSku = `${p.sku}-COPY-${stamp}`
+      const copiedName = `${p.name} (${t.common.copy})`
+      const copiedVariations = p.variations.length
+        ? p.variations.map((v, idx) => ({
+            sku: `${v.sku}-C${idx + 1}${stamp}`,
+            name: v.name,
+            price: Number(v.price) || 0,
+            weight: Number(v.weight) || 0,
+          }))
+        : [{ sku: copiedSku, name: t.products.type.simple, price: 0, weight: 0 }]
+
+      await productsApi.create({
+        sku: copiedSku,
+        name: copiedName,
+        description: p.description || undefined,
+        status: p.status,
+        categoryId: p.categoryId || undefined,
+        brandId: p.brandId || undefined,
+        tags: p.tags || undefined,
+        minOrderQty: p.minOrderQty || undefined,
+        isFeatured: !!p.isFeatured,
+        imageUrl: p.imageUrl || undefined,
+        variations: copiedVariations,
+      })
+      load(); loadSummary()
+    } catch (e: unknown) {
+      setGlobalError(e instanceof Error ? e.message : t.common.error)
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
+
   // ─── Export / Import ──────────────────────────────────────────
   const handleExport = async () => {
     setExporting(true)
@@ -471,6 +508,19 @@ export default function ProductsPage() {
   }
 
   const totalStock = (v: Variation) => (v.stocks ?? []).reduce((s, r) => s + r.quantity, 0)
+  const productTotalStock = (p: Product) => p.variations.reduce((sum, v) => sum + totalStock(v), 0)
+  const getBrandName = (p: Product) => brands.find(b => b.id === p.brandId)?.name ?? t.products.fields.noBrand
+  const productPrice = (p: Product) => {
+    if (!p.variations.length) return null
+    const minPrice = Math.min(...p.variations.map(v => Number(v.price) || 0))
+    return `RM ${minPrice.toFixed(2)}`
+  }
+  const statusDotClass = (status: string) => {
+    if (status === 'ACTIVE') return 'bg-green-500'
+    if (status === 'INACTIVE') return 'bg-gray-400'
+    if (status === 'ARCHIVED') return 'bg-red-500'
+    return 'bg-gray-400'
+  }
 
   // ─── Edit Tab config ──────────────────────────────────────────
   const EDIT_TABS: { key: EditTab; label: string; icon: React.ElementType }[] = [
@@ -987,7 +1037,7 @@ export default function ProductsPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="w-8 px-4 py-3"></th>
-                  {[t.products.fields.name, t.products.fields.sku, t.products.fields.category, t.products.variation.title, t.common.status, t.common.actions].map(h => (
+                  {[t.products.fields.name, t.products.fields.sku, t.products.fields.category, t.common.price, t.common.status, t.common.actions].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-semibold text-gray-600 text-xs">{h}</th>
                 ))}
               </tr>
@@ -1010,85 +1060,135 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-500 text-xs">{p.sku}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{p.categoryId ?? <span className="text-gray-300">—</span>}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{p.variations.length} {t.products.variation.title.toLowerCase()}</td>
-                    <td className="px-4 py-3"><Badge label={getStatusLabel(p.status)} color={statusColor[p.status] ?? 'gray'} /></td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{productPrice(p) ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${statusDotClass(p.status)}`} title={getStatusLabel(p.status)} aria-label={getStatusLabel(p.status)} />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5">
                         <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-[#d4a017] hover:bg-yellow-50 rounded-lg" title={t.common.edit}><Edit2 size={14} /></button>
+                        <button onClick={() => duplicateProduct(p)} disabled={duplicatingId === p.id} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50" title={t.common.copy}>{duplicatingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}</button>
                         <button onClick={() => handleDelete(p.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title={t.common.delete}><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
                   {expandedId === p.id && (
-                    <tr key={`${p.id}-exp`} className="bg-gray-50 border-b border-gray-100">
-                      <td colSpan={7} className="px-6 py-4">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="text-gray-500 border-b border-gray-200">
-                              {[t.products.variation.sku, t.common.name, t.products.variation.price, t.products.variation.weight, t.products.variation.stock, ''].map(h => <th key={h} className="text-left py-1.5 pr-4 font-semibold">{h}</th>)}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {p.variations.length === 0 && <tr><td colSpan={6} className="py-3 text-gray-400 italic">{t.products.variation.noVariations}</td></tr>}
-                            {p.variations.map(v => (
-                              <tr key={v.id} className="border-b border-gray-100 last:border-0">
-                                {editingVariation?.variation.id === v.id ? (
-                                  <>
-                                    <td className="pr-2 py-1.5"><input value={varEditForm.sku} onChange={e => setVarEditForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
-                                    <td className="pr-2 py-1.5"><input value={varEditForm.name} onChange={e => setVarEditForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
-                                    <td className="pr-2 py-1.5"><input type="number" step="0.01" value={varEditForm.price} onChange={e => setVarEditForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-24" /></td>
-                                    <td className="pr-2 py-1.5"><input type="number" step="0.001" value={varEditForm.weight} onChange={e => setVarEditForm(f => ({ ...f, weight: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-20" /></td>
-                                    <td className="pr-2 py-1.5 text-gray-400">—</td>
-                                    <td className="py-1.5">
-                                      <div className="flex gap-1">
-                                        <button onClick={saveVariation} disabled={savingVar} className="p-1 text-green-600 hover:bg-green-50 rounded">{savingVar ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</button>
-                                        <button onClick={() => { setEditingVariation(null); setVarError('') }} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={13} /></button>
-                                      </div>
-                                    </td>
-                                  </>
-                                ) : (
-                                  <>
-                                    <td className="pr-4 py-1.5 font-mono text-gray-700">{v.sku}</td>
-                                    <td className="pr-4 py-1.5 font-medium text-gray-800">{v.name}</td>
-                                    <td className="pr-4 py-1.5 text-gray-700">RM {Number(v.price).toFixed(2)}</td>
-                                    <td className="pr-4 py-1.5 text-gray-600">{Number(v.weight).toFixed(3)} kg</td>
-                                    <td className="pr-4 py-1.5">
-                                      <span className={`font-semibold ${totalStock(v) < 5 ? 'text-red-500' : 'text-gray-800'}`}>{totalStock(v)}</span>
-                                    </td>
-                                    <td className="py-1.5">
-                                      <div className="flex gap-1">
-                                        <button onClick={() => { openEditVar(p.id, v); setAddingVarTo(null) }} className="p-1 text-gray-400 hover:text-[#d4a017] rounded"><Edit2 size={13} /></button>
-                                        <button onClick={() => deleteVariationFn(p.id, v.id)} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 size={13} /></button>
-                                      </div>
-                                    </td>
-                                  </>
-                                )}
-                              </tr>
-                            ))}
-                            {addingVarTo === p.id ? (
-                              <tr className="border-t-2 border-[#d4a017]/30 bg-yellow-50/50">
-                                <td className="pr-2 pt-2 pb-1"><input autoFocus placeholder="SKU*" value={newVarForm.sku} onChange={e => setNewVarForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
-                                <td className="pr-2 pt-2 pb-1"><input placeholder={t.products.addNewRowNamePlaceholder} value={newVarForm.name} onChange={e => setNewVarForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
-                                <td className="pr-2 pt-2 pb-1"><input type="number" step="0.01" placeholder={t.products.variation.price} value={newVarForm.price} onChange={e => setNewVarForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-24" /></td>
-                                <td className="pr-2 pt-2 pb-1"><input type="number" step="0.001" placeholder={t.products.variation.weight} value={newVarForm.weight} onChange={e => setNewVarForm(f => ({ ...f, weight: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-20" /></td>
-                                <td></td>
-                                <td className="pt-2 pb-1">
-                                  <div className="flex gap-1">
-                                    <button onClick={() => saveNewVariation(p.id)} disabled={savingNewVar} className="p-1 text-green-600 hover:bg-green-50 rounded">{savingNewVar ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</button>
-                                    <button onClick={() => { setAddingVarTo(null); setVarError('') }} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={13} /></button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ) : (
-                              <tr><td colSpan={6} className="pt-2">
-                                <button onClick={() => { openAddVar(p.id); setEditingVariation(null) }}
-                                  className="flex items-center gap-1.5 text-xs text-[#d4a017] hover:text-[#b8891a] font-semibold py-1">
-                                  <Plus size={13} />{t.products.variation.add}
-                                </button>
-                              </td></tr>
-                            )}
-                          </tbody>
-                        </table>
+                    <tr key={`${p.id}-exp`} className="bg-[#f8fafc] border-b border-gray-100">
+                      <td colSpan={7} className="px-6 py-5">
+                        <div className="border border-gray-200 rounded-2xl bg-white overflow-hidden">
+                          <div className="p-5 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 border-b border-gray-100">
+                            <div className="h-44 md:h-48 rounded-2xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                              {p.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <ImageIcon size={54} className="text-gray-300" />
+                              )}
+                            </div>
+                            <div className="space-y-5">
+                              <div>
+                                <h3 className="text-3xl font-extrabold text-gray-900 tracking-tight">{p.name}</h3>
+                                <p className="text-2xl font-semibold text-gray-800 mt-2">{productPrice(p) ?? '—'}</p>
+                                <p className="text-base text-gray-500 mt-2">{p.description || t.products.noDescription}</p>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">{t.products.fields.category}</p>
+                                  <p className="text-2xl font-semibold text-gray-900 mt-1">{p.categoryId || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">{t.products.fields.brand}</p>
+                                  <p className="text-2xl font-semibold text-gray-900 mt-1">{getBrandName(p)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">{t.products.totalStock}</p>
+                                  <p className="text-2xl font-semibold text-gray-900 mt-1">{productTotalStock(p)} {t.products.units}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-5">
+                            <div className="flex items-center gap-2 text-gray-900 font-semibold mb-3">
+                              <Tag size={16} className="text-[#2b6cb0]" />
+                              <span>{t.products.detailSectionTitle}</span>
+                            </div>
+
+                            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                  <tr className="text-gray-500">
+                                    {[t.products.variation.sku, t.common.name, t.products.variation.price, t.products.variation.weight, t.products.variation.stock, t.common.actions].map(h => (
+                                      <th key={h} className="text-left py-3 px-4 font-semibold">{h}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {p.variations.length === 0 && <tr><td colSpan={6} className="py-4 px-4 text-gray-400 italic">{t.products.variation.noVariations}</td></tr>}
+                                  {p.variations.map(v => (
+                                    <tr key={v.id} className="border-b border-gray-100 last:border-0">
+                                      {editingVariation?.variation.id === v.id ? (
+                                        <>
+                                          <td className="px-4 py-2"><input value={varEditForm.sku} onChange={e => setVarEditForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
+                                          <td className="px-4 py-2"><input value={varEditForm.name} onChange={e => setVarEditForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
+                                          <td className="px-4 py-2"><input type="number" step="0.01" value={varEditForm.price} onChange={e => setVarEditForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-28" /></td>
+                                          <td className="px-4 py-2"><input type="number" step="0.001" value={varEditForm.weight} onChange={e => setVarEditForm(f => ({ ...f, weight: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-24" /></td>
+                                          <td className="px-4 py-2 text-gray-400">—</td>
+                                          <td className="px-4 py-2">
+                                            <div className="flex gap-1">
+                                              <button onClick={saveVariation} disabled={savingVar} className="p-1 text-green-600 hover:bg-green-50 rounded">{savingVar ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</button>
+                                              <button onClick={() => { setEditingVariation(null); setVarError('') }} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={13} /></button>
+                                            </div>
+                                          </td>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <td className="px-4 py-3 font-mono text-gray-700">{v.sku}</td>
+                                          <td className="px-4 py-3 font-medium text-gray-800">{v.name}</td>
+                                          <td className="px-4 py-3 text-gray-700">RM {Number(v.price).toFixed(2)}</td>
+                                          <td className="px-4 py-3 text-gray-600">{Number(v.weight).toFixed(3)} kg</td>
+                                          <td className="px-4 py-3">
+                                            <span className={`font-semibold ${totalStock(v) < 5 ? 'text-red-500' : 'text-gray-800'}`}>{totalStock(v)}</span>
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <div className="flex gap-1">
+                                              <button onClick={() => { openEditVar(p.id, v); setAddingVarTo(null) }} className="p-1 text-gray-400 hover:text-[#d4a017] rounded"><Edit2 size={13} /></button>
+                                              <button onClick={() => deleteVariationFn(p.id, v.id)} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 size={13} /></button>
+                                            </div>
+                                          </td>
+                                        </>
+                                      )}
+                                    </tr>
+                                  ))}
+                                  {addingVarTo === p.id ? (
+                                    <tr className="border-t-2 border-[#d4a017]/30 bg-yellow-50/50">
+                                      <td className="px-4 pt-2 pb-2"><input autoFocus placeholder={`${t.products.fields.sku}*`} value={newVarForm.sku} onChange={e => setNewVarForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
+                                      <td className="px-4 pt-2 pb-2"><input placeholder={t.products.addNewRowNamePlaceholder} value={newVarForm.name} onChange={e => setNewVarForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
+                                      <td className="px-4 pt-2 pb-2"><input type="number" step="0.01" placeholder={t.products.variation.price} value={newVarForm.price} onChange={e => setNewVarForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-28" /></td>
+                                      <td className="px-4 pt-2 pb-2"><input type="number" step="0.001" placeholder={t.products.variation.weight} value={newVarForm.weight} onChange={e => setNewVarForm(f => ({ ...f, weight: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-24" /></td>
+                                      <td className="px-4"></td>
+                                      <td className="px-4 pt-2 pb-2">
+                                        <div className="flex gap-1">
+                                          <button onClick={() => saveNewVariation(p.id)} disabled={savingNewVar} className="p-1 text-green-600 hover:bg-green-50 rounded">{savingNewVar ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}</button>
+                                          <button onClick={() => { setAddingVarTo(null); setVarError('') }} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={13} /></button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={6} className="px-4 py-3">
+                                        <button onClick={() => { openAddVar(p.id); setEditingVariation(null) }}
+                                          className="flex items-center gap-1.5 text-sm text-[#d4a017] hover:text-[#b8891a] font-semibold py-1">
+                                          <Plus size={14} />{t.products.variation.add}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}
