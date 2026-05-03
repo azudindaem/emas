@@ -22,6 +22,7 @@ const ms = {
     cancel: 'Batal',
     delete: 'Padam',
     edit: 'Edit',
+    copy: 'Salin',
     add: 'Tambah',
     search: 'Cari',
     filter: 'Tapis',
@@ -145,6 +146,9 @@ const ms = {
     categorySelectPlaceholder: 'Pilih kategori...',
     categoryAddCustom: '+ Tambah sendiri...',
     categoryTypePlaceholder: 'Taip kategori baru...',
+    detailSectionTitle: 'Butiran Produk',
+    noDescription: 'Tiada penerangan disediakan.',
+    units: 'unit',
     sort: {
       newest: 'Terbaru dahulu',
       oldest: 'Terlama dahulu',

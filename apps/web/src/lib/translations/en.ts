@@ -24,6 +24,7 @@ const en: Translations = {
     cancel: 'Cancel',
     delete: 'Delete',
     edit: 'Edit',
+    copy: 'Copy',
     add: 'Add',
     search: 'Search',
     filter: 'Filter',
@@ -147,6 +148,9 @@ const en: Translations = {
     categorySelectPlaceholder: 'Select category...',
     categoryAddCustom: '+ Add custom...',
     categoryTypePlaceholder: 'Type new category...',
+    detailSectionTitle: 'Product Details',
+    noDescription: 'No description provided.',
+    units: 'units',
     sort: {
       newest: 'Newest first',
       oldest: 'Oldest first',
