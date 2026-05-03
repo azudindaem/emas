@@ -136,20 +136,12 @@ docs/
 ### GitHub Workflow (From Day 1)
 
 #### Branching
-- main: production-ready
-- develop: integration for dev/staging
-- feature/*: feature work
+- main: single source of truth, push terus
+- feature/*: feature work (merge terus ke main)
 - hotfix/*: production fixes
 
-#### Pull Request Rules
-- Required 1-2 code reviews
-- Required checks: lint, typecheck, unit tests, build
-- No direct push to main
-
 #### GitHub Environments
-- dev: auto deploy from develop
-- staging: auto deploy from release candidate
-- production: manual approval deploy from main tag
+- production: deploy dari main
 
 ---
 
