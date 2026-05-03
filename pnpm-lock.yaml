@@ -120,6 +120,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      libphonenumber-js:
+        specifier: ^1.12.42
+        version: 1.12.42
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.5)

@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="w-10 h-10 rounded-xl bg-[#d4a017] flex items-center justify-center text-black font-bold mx-auto mb-3 animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-black font-bold mx-auto mb-3 animate-pulse">
             E
           </div>
           <p className="text-sm text-gray-500">Memuatkan...</p>

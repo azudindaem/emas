@@ -159,7 +159,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 bg-white/95 backdrop-blur-sm border-b border-slate-100 z-50">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#d4a017] flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-base">E</span>
             </div>
             <span className="font-bold text-xl text-slate-900 tracking-tight">emas</span>
@@ -177,7 +177,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 bg-[#d4a017] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#c49015] transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-dark transition-colors shadow-sm"
             >
               Cuba Percuma <ArrowRight size={15} />
             </Link>
@@ -195,7 +195,7 @@ export default function LandingPage() {
 
           <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
             Urus Pesanan &amp; Penghantaran<br />
-            <span className="text-[#d4a017]">Lebih Pantas, Lebih Mudah</span>
+            <span className="text-primary">Lebih Pantas, Lebih Mudah</span>
           </h1>
 
           <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -206,7 +206,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 bg-[#d4a017] text-white px-8 py-4 rounded-xl font-bold text-base hover:bg-[#c49015] transition-colors shadow-md"
+              className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-base hover:bg-primary-dark transition-colors shadow-md"
             >
               Cuba Percuma Sekarang <ArrowRight size={18} />
             </Link>
@@ -252,7 +252,7 @@ export default function LandingPage() {
       <section id="features" className="py-28 px-5">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-[#d4a017] text-xs font-bold uppercase tracking-widest mb-3">Ciri-Ciri Utama</p>
+            <p className="text-primary text-xs font-bold uppercase tracking-widest mb-3">Ciri-Ciri Utama</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">Semua Yang Perniagaan Anda Perlukan</h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
               Direka khas untuk peniaga online Malaysia. Lengkap, mudah, dan berkesan.
@@ -266,7 +266,7 @@ export default function LandingPage() {
                 className="group bg-white border border-slate-100 rounded-2xl p-7 hover:border-amber-200 hover:shadow-lg transition-all duration-200"
               >
                 <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-5 group-hover:bg-amber-100 transition-colors">
-                  <f.icon size={22} className="text-[#d4a017]" />
+                  <f.icon size={22} className="text-primary" />
                 </div>
                 <h3 className="font-bold text-slate-900 text-lg mb-2">{f.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
@@ -280,7 +280,7 @@ export default function LandingPage() {
       <section className="py-28 px-5 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-[#d4a017] text-xs font-bold uppercase tracking-widest mb-3">Kenapa Emas?</p>
+            <p className="text-primary text-xs font-bold uppercase tracking-widest mb-3">Kenapa Emas?</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">Dipercayai Ribuan Peniaga Malaysia</h2>
             <p className="text-slate-500 text-lg max-w-xl mx-auto">
               Kami komited untuk membantu perniagaan anda berkembang dengan solusi terbaik.
@@ -291,7 +291,7 @@ export default function LandingPage() {
             {whyUs.map((w) => (
               <div key={w.title} className="text-center px-6 py-8">
                 <div className="w-16 h-16 rounded-2xl bg-white border border-amber-100 shadow-sm flex items-center justify-center mx-auto mb-6">
-                  <w.icon size={28} className="text-[#d4a017]" />
+                  <w.icon size={28} className="text-primary" />
                 </div>
                 <h3 className="font-bold text-slate-900 text-xl mb-3">{w.title}</h3>
                 <p className="text-slate-500 leading-relaxed">{w.desc}</p>
@@ -305,7 +305,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-28 px-5">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-[#d4a017] text-xs font-bold uppercase tracking-widest mb-3">Pelan Harga</p>
+            <p className="text-primary text-xs font-bold uppercase tracking-widest mb-3">Pelan Harga</p>
             <h2 className="text-4xl font-bold text-slate-900 mb-4">Harga Berpatutan, Nilai Terbaik</h2>
             <p className="text-slate-500 text-lg">Tiada kontrak. Tiada caj tersembunyi. Boleh batal bila-bila masa.</p>
           </div>
@@ -316,12 +316,12 @@ export default function LandingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl p-8 border transition-all ${
                   i === 1
-                    ? 'border-[#d4a017] bg-[#1a1a2e] shadow-2xl scale-105'
+                    ? 'border-primary bg-sidebar shadow-2xl scale-105'
                     : 'border-slate-200 bg-white hover:shadow-xl'
                 }`}
               >
                 {i === 1 && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#d4a017] text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-md">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-md">
                     PALING POPULAR
                   </div>
                 )}
@@ -346,7 +346,7 @@ export default function LandingPage() {
                     <li key={feat} className="flex items-start gap-2.5 text-sm">
                       <CheckCircle
                         size={16}
-                        className={`shrink-0 mt-0.5 ${i === 1 ? 'text-amber-400' : 'text-[#d4a017]'}`}
+                        className={`shrink-0 mt-0.5 ${i === 1 ? 'text-amber-400' : 'text-primary'}`}
                       />
                       <span className={i === 1 ? 'text-slate-300' : 'text-slate-700'}>{feat}</span>
                     </li>
@@ -357,8 +357,8 @@ export default function LandingPage() {
                   href={i === 2 ? '#contact' : '/register'}
                   className={`block text-center py-3.5 rounded-xl font-bold text-sm transition-colors ${
                     i === 1
-                      ? 'bg-[#d4a017] text-white hover:bg-[#c49015]'
-                      : 'bg-amber-50 text-[#d4a017] hover:bg-amber-100 border border-amber-100'
+                      ? 'bg-primary text-white hover:bg-primary-dark'
+                      : 'bg-amber-50 text-primary hover:bg-amber-100 border border-amber-100'
                   }`}
                 >
                   {i === 2 ? 'Hubungi Kami' : 'Mulakan Sekarang'}
@@ -384,7 +384,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 bg-[#d4a017] text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-[#c49015] transition-colors shadow-lg"
+            className="inline-flex items-center gap-2 bg-primary text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition-colors shadow-lg"
           >
             Cuba Percuma <ArrowRight size={20} />
           </Link>
@@ -397,7 +397,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-10 mb-12">
             <div>
               <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-xl bg-[#d4a017] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
                   <span className="text-white font-bold text-base">E</span>
                 </div>
                 <span className="font-bold text-lg text-white tracking-tight">emas</span>
@@ -431,15 +431,15 @@ export default function LandingPage() {
               <p className="font-bold text-white text-xs uppercase tracking-widest mb-5">Hubungi Kami</p>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center gap-2.5">
-                  <Mail size={14} className="text-[#d4a017] shrink-0" />
+                  <Mail size={14} className="text-primary shrink-0" />
                   <a href="mailto:info@emas.my" className="hover:text-white transition-colors">info@emas.my</a>
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Phone size={14} className="text-[#d4a017] shrink-0" />
+                  <Phone size={14} className="text-primary shrink-0" />
                   <a href="https://wa.me/601XXXXXXXX" className="hover:text-white transition-colors">WhatsApp</a>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <MapPin size={14} className="text-[#d4a017] shrink-0 mt-0.5" />
+                  <MapPin size={14} className="text-primary shrink-0 mt-0.5" />
                   <span>Malaysia</span>
                 </li>
               </ul>

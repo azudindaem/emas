@@ -7,6 +7,7 @@ import { useLocale } from '@/lib/locale'
 import {
   LayoutDashboard,
   ShoppingCart,
+  User,
   Package,
   Warehouse,
   Truck,
@@ -31,6 +32,7 @@ export function Sidebar() {
   const navItems = [
     { href: '/dashboard', label: t.nav.overview, icon: LayoutDashboard },
     { href: '/dashboard/orders', label: t.nav.orders, icon: ShoppingCart },
+    { href: '/dashboard/customers', label: t.nav.customers, icon: User },
     { href: '/dashboard/products', label: t.nav.products, icon: Package },
     { href: '/dashboard/inventory', label: t.nav.inventory, icon: Warehouse },
     { href: '/dashboard/shipping', label: t.nav.shipping, icon: Truck },
@@ -46,10 +48,10 @@ export function Sidebar() {
   ]
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-[#1a1a2e] text-white">
+    <aside className="flex flex-col w-64 min-h-screen bg-sidebar text-white">
       {/* Logo */}
       <div className="flex items-center gap-2 px-6 py-5 border-b border-white/10">
-        <div className="w-8 h-8 rounded-lg bg-[#d4a017] flex items-center justify-center text-black font-bold text-sm">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold text-sm">
           E
         </div>
         <span className="font-bold text-lg tracking-tight">emas.my</span>
@@ -65,7 +67,7 @@ export function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 active
-                  ? 'bg-[#d4a017] text-black font-semibold'
+                  ? 'bg-primary text-black font-semibold'
                   : 'text-gray-300 hover:bg-white/10 hover:text-white'
               }`}
             >
@@ -80,7 +82,7 @@ export function Sidebar() {
       {/* User + Logout */}
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#d4a017] flex items-center justify-center text-black font-bold text-xs">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-black font-bold text-xs">
             {user?.name?.[0]?.toUpperCase() ?? 'U'}
           </div>
           <div className="flex-1 min-w-0">

@@ -43,6 +43,7 @@ model Tenant {
   shippingZones ShippingZone[]
   shippingRates ShippingRate[]
   shippingDefaults ShippingDefaultSetting?
+  customers    Customer[]
 
   @@index([slug])
 }
@@ -282,6 +283,30 @@ model StockMovement {
 }
 
 // ─────────────────────────────────────────────────────────
+// CUSTOMERS
+// ─────────────────────────────────────────────────────────
+
+model Customer {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  phone       String
+  email       String?
+  address     Json?
+  notes       String?
+  totalOrders Int      @default(0)
+  totalSpent  Decimal  @db.Decimal(10,2) @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders  Order[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+  @@index([phone])
+}
+
 // ORDERS
 // ─────────────────────────────────────────────────────────
 
@@ -311,6 +336,7 @@ model Order {
   owner     User?       @relation("OrderOwner", fields: [ownerId], references: [id])
   brand     Brand?      @relation(fields: [brandId], references: [id])
   createdBy User?       @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  customer  Customer?   @relation(fields: [customerId], references: [id])
   items        OrderItem[]
   shipment     OrderShipment?
   payments     OrderPayment[]

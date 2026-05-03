@@ -16,6 +16,7 @@ import { InventoryModule } from './modules/inventory/inventory.module'
 import { CouponModule } from './modules/coupon/coupon.module'
 import { BrandModule } from './modules/brand/brand.module'
 import { RoleModule } from './modules/role/role.module'
+import { CustomerModule } from './modules/customer/customer.module'
 import { TenantMiddleware } from './common/middleware/tenant.middleware'
 import { TenantResolver } from '@emas/tenancy'
 import { envSchema } from './config/env.schema'
@@ -46,6 +47,7 @@ import { envSchema } from './config/env.schema'
     CouponModule,
     BrandModule,
     RoleModule,
+    CustomerModule,
   ],
   providers: [TenantResolver],
 })

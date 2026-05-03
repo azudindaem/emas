@@ -1,10 +1,17 @@
 @import "tailwindcss";
 
-:root {
-  --color-primary: #d4a017;
-  --color-sidebar: #1a1a2e;
-  --color-sidebar-hover: #16213e;
+/* ─── Design Token (single source of truth) ─────────────── */
+@theme {
+  --color-primary:      #d4a017;
+  --color-primary-dark: #b8891a;
+  --color-sidebar:      #1a1a2e;
+  --color-sidebar-hover:#16213e;
 }
+
+/* Tailwind @theme vars auto-generate bg-primary, text-primary,
+   ring-primary, border-primary, bg-primary-dark etc.
+   They also read from the :root override set by layout.tsx
+   for per-tenant branding. */
 
 html {
   scroll-behavior: smooth;

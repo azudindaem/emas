@@ -212,7 +212,7 @@ export default function InventoryPage() {
           </div>
           <div className="flex gap-3">
             <button type="submit" disabled={adjusting}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
               {adjusting && <Loader2 size={13} className="animate-spin" />}{t.inventory.adjustBtn}
             </button>
             <button type="button" onClick={() => setAdjustTarget(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
@@ -247,7 +247,7 @@ export default function InventoryPage() {
           </label>
           <div className="flex gap-3">
             <button type="submit" disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
               {saving && <Loader2 size={13} className="animate-spin" />}{t.common.save}
             </button>
             <button type="button" onClick={() => setWarehouseModal(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
@@ -269,18 +269,18 @@ export default function InventoryPage() {
           {tab === 'stocks' && (
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
               placeholder={t.inventory.searchSKU}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-52 focus:outline-none focus:ring-1 focus:ring-[#d4a017]" />
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-52 focus:outline-none focus:ring-1 focus:ring-primary" />
           )}
           {tab === 'movements' && (
             <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1) }}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4a017]">
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
               <option value="">{t.inventory.allTypes}</option>
               {['IN', 'OUT', 'ADJUSTMENT', 'RESERVED', 'RELEASED'].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           )}
           {tab === 'warehouses' && (
             <button onClick={openCreateWarehouse}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d4a017] text-black font-semibold rounded-lg text-sm hover:bg-[#b8891a]">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-black font-semibold rounded-lg text-sm hover:bg-primary-dark">
               <Plus size={14} />{t.inventory.addWarehouse}
             </button>
           )}
@@ -314,7 +314,7 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => openAdjust(s)}
-                        className="text-xs px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-[#d4a017] text-gray-600 transition-colors">
+                        className="text-xs px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary text-gray-600 transition-colors">
                         {t.inventory.adjust}
                       </button>
                     </td>
@@ -372,7 +372,7 @@ export default function InventoryPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button onClick={() => openEditWarehouse(w)} className="p-1.5 text-gray-400 hover:text-[#d4a017] transition-colors"><Pencil size={14} /></button>
+                      <button onClick={() => openEditWarehouse(w)} className="p-1.5 text-gray-400 hover:text-primary transition-colors"><Pencil size={14} /></button>
                       <button onClick={() => handleDeleteWarehouse(w.id)} disabled={deleting === w.id || w.isDefault}
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-30">
                         {deleting === w.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

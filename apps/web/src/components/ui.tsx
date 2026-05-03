@@ -8,7 +8,7 @@ interface StatCardProps {
   color?: string
 }
 
-export function StatCard({ label, value, sub, icon, color = 'bg-[#d4a017]' }: StatCardProps) {
+export function StatCard({ label, value, sub, icon, color = 'bg-primary' }: StatCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4">
       {icon && (

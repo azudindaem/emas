@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#d4a017] flex items-center justify-center text-black font-bold">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-black font-bold">
               E
             </div>
             <div>
@@ -61,7 +61,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@syarikat.com"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
             <div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] focus:border-transparent"
+                  className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <button
                   type="button"
@@ -88,7 +88,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#d4a017] hover:bg-[#b8891a] text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Sedang log masuk...' : 'Log Masuk'}
             </button>
@@ -96,7 +96,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-xs text-gray-400">
             Belum ada akaun?{' '}
-            <a href="/register" className="text-[#d4a017] hover:underline">
+            <a href="/register" className="text-primary hover:underline">
               Daftar di sini
             </a>
           </p>

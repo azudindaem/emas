@@ -101,7 +101,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-800">{t.dashboard.recentOrders}</h2>
-          <a href="/dashboard/orders" className="text-xs text-[#d4a017] hover:underline">
+          <a href="/dashboard/orders" className="text-xs text-primary hover:underline">
             {t.dashboard.viewAll}
           </a>
         </div>

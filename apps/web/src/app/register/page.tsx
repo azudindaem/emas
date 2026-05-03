@@ -39,7 +39,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#d4a017] flex items-center justify-center text-black font-bold">E</div>
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-black font-bold">E</div>
             <div>
               <p className="font-bold text-gray-900 text-lg leading-tight">emas.my</p>
               <p className="text-xs text-gray-400">Daftar akaun baru</p>
@@ -64,21 +64,21 @@ export default function RegisterPage() {
                   value={form[field as keyof typeof form]}
                   onChange={(e) => set(field, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] focus:border-transparent"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             ))}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-[#d4a017] hover:bg-[#b8891a] text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-60"
+              className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-black font-semibold rounded-lg text-sm transition-colors disabled:opacity-60"
             >
               {loading ? 'Mendaftar...' : 'Daftar Sekarang'}
             </button>
           </form>
           <p className="mt-6 text-center text-xs text-gray-400">
             Sudah ada akaun?{' '}
-            <a href="/login" className="text-[#d4a017] hover:underline">Log masuk</a>
+            <a href="/login" className="text-primary hover:underline">Log masuk</a>
           </p>
         </div>
       </div>

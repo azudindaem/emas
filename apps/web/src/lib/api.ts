@@ -210,6 +210,20 @@ export const team = {
   roles: () => request<unknown[]>('/user/roles'),
 }
 
+// ─── Customers ────────────────────────────────────────────────────────────────
+
+export const customers = {
+  list: (params?: Record<string, string | number>) => {
+    const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    return request<{ items: unknown[]; meta: { page: number; totalPages: number; total: number } }>(`/customer${q}`)
+  },
+  get: (id: string) => request<unknown>(`/customer/${id}`),
+  orders: (id: string, params?: Record<string, string | number>) => {
+    const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    return request<{ items: unknown[]; meta: { total: number; limit: number } }>(`/customer/${id}/orders${q}`)
+  },
+}
+
 // ─── Coupons ──────────────────────────────────────────────────────────────────
 
 export const coupons = {

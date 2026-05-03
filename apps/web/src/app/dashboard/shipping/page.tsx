@@ -123,7 +123,7 @@ export default function ShippingPage() {
           <p className="text-sm text-gray-500 mt-0.5">{t.shipping.subtitle}</p>
         </div>
         {tab === 'couriers' && (
-          <button onClick={openCreateCourier} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm">
+          <button onClick={openCreateCourier} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm">
             <Plus size={15} />{t.shipping.addCourier}
           </button>
         )}
@@ -159,7 +159,7 @@ export default function ShippingPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button type="submit" disabled={savingCourier} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+            <button type="submit" disabled={savingCourier} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
               {savingCourier && <Loader2 size={13} className="animate-spin" />}{t.common.save}
             </button>
             <button type="button" onClick={() => setShowCourierForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
@@ -201,7 +201,7 @@ export default function ShippingPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button type="submit" disabled={generatingAwb} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+            <button type="submit" disabled={generatingAwb} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
               {generatingAwb && <Loader2 size={13} className="animate-spin" />}{t.shipping.generateAwb}
             </button>
             <button type="button" onClick={() => setShowAwbForm(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
@@ -235,7 +235,7 @@ export default function ShippingPage() {
                   <tr><td colSpan={7} className="text-center py-12 text-gray-400">{t.shipping.noShipments}</td></tr>
                 ) : shipments.map(s => (
                   <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-[#d4a017]">{s.order?.orderNo ?? s.orderId}</td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{s.order?.orderNo ?? s.orderId}</td>
                     <td className="px-4 py-3 text-gray-600">{s.order?.customerName ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{s.courier?.label ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{s.trackingNo ?? '—'}</td>
@@ -245,14 +245,14 @@ export default function ShippingPage() {
                       <div className="flex gap-2 items-center">
                         {!s.trackingNo && (
                           <button onClick={() => { setShowAwbForm(s); setAwbForm({ courierId: '', weight: '', length: '', width: '', height: '' }) }}
-                            className="flex items-center gap-1 text-xs px-2 py-1 border border-gray-300 rounded-lg hover:border-[#d4a017] text-gray-600 transition-colors">
+                            className="flex items-center gap-1 text-xs px-2 py-1 border border-gray-300 rounded-lg hover:border-primary text-gray-600 transition-colors">
                             <Package size={12} />{t.shipping.generateAwb}
                           </button>
                         )}
                         <select defaultValue={s.status}
                           onChange={e => updateShipmentStatus(s.id, e.target.value)}
                           disabled={updatingShipStatus === s.id}
-                          className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#d4a017]">
+                          className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary">
                           {SHIPMENT_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
                       </div>
@@ -283,7 +283,7 @@ export default function ShippingPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">{c.label}</td>
                   <td className="px-4 py-3"><Badge label={c.isActive ? 'Aktif' : 'Tidak Aktif'} color={c.isActive ? 'green' : 'gray'} /></td>
                   <td className="px-4 py-3 text-right flex gap-2 justify-end">
-                    <button onClick={() => openEditCourier(c)} className="p-1.5 text-gray-400 hover:text-[#d4a017] rounded"><Edit2 size={14} /></button>
+                    <button onClick={() => openEditCourier(c)} className="p-1.5 text-gray-400 hover:text-primary rounded"><Edit2 size={14} /></button>
                     <button onClick={() => deleteCourier(c.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded"><Trash2 size={14} /></button>
                   </td>
                 </tr>

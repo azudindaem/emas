@@ -35,8 +35,12 @@ export class ProductService {
 
   // ─── List with filters ───────────────────────────────────────
   async list(tenantId: string, ownerId: string, query: ListProductQueryDto): Promise<Record<string, unknown>> {
-    const page = query.page ?? 1
-    const limit = query.limit ?? 20
+    const parsedPage = Number(query.page)
+    const parsedLimit = Number(query.limit)
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? Math.floor(parsedPage) : 1
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+      ? Math.min(200, Math.floor(parsedLimit))
+      : 20
     const skip = (page - 1) * limit
 
     const where = {

@@ -54,7 +54,7 @@ function ImageDropZone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`relative border-2 border-dashed rounded-xl transition-all cursor-pointer overflow-hidden
-          ${dragging ? 'border-[#d4a017] bg-yellow-50/60 scale-[1.01]' : 'border-gray-300 hover:border-[#d4a017]/60 hover:bg-gray-50'}
+          ${dragging ? 'border-primary bg-yellow-50/60 scale-[1.01]' : 'border-gray-300 hover:border-primary/60 hover:bg-gray-50'}
           ${value ? 'h-44' : 'h-36'}`}
       >
         {value ? (
@@ -68,7 +68,7 @@ function ImageDropZone({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
             {uploading
-              ? <Loader2 size={28} className="text-[#d4a017] animate-spin" />
+              ? <Loader2 size={28} className="text-primary animate-spin" />
               : <ImageIcon size={28} className="text-gray-300" />}
             <p className="text-sm font-medium text-gray-400">
               {uploading ? labels.uploading : labels.imageHint}
@@ -78,13 +78,13 @@ function ImageDropZone({
         )}
         {uploading && value && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-            <Loader2 size={24} className="text-[#d4a017] animate-spin" />
+            <Loader2 size={24} className="text-primary animate-spin" />
           </div>
         )}
       </div>
       {value && (
         <div className="flex items-center gap-2">
-          <input value={value} onChange={e => onChange(e.target.value)} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#d4a017]" placeholder={labels.imageUrl} />
+          <input value={value} onChange={e => onChange(e.target.value)} className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary" placeholder={labels.imageUrl} />
           <button type="button" onClick={() => onChange('')} className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50"><X size={14} /></button>
         </div>
       )}
@@ -139,7 +139,7 @@ function CategorySelect({ value, onChange, categories, onAddCategory, labels }: 
         onBlur={confirm}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirm() } if (e.key === 'Escape') { setCustomMode(false); setCustomVal('') } }}
         placeholder={labels.typePlaceholder}
-        className={'w-full border border-[#d4a017] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]'}
+        className={'w-full border border-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'}
       />
     )
   }
@@ -151,7 +151,7 @@ function CategorySelect({ value, onChange, categories, onAddCategory, labels }: 
         if (e.target.value === CUSTOM_KEY) { setCustomMode(true); setCustomVal('') }
         else onChange(e.target.value)
       }}
-      className={'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] bg-white'}
+      className={'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white'}
     >
       <option value="">{labels.selectPlaceholder}</option>
       {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -180,7 +180,7 @@ const emptyVariationRow = () => ({ sku: '', name: '', price: '', weight: '' })
 type ProductType = 'simple' | 'variations'
 type EditTab = 'basic' | 'detail' | 'shipping' | 'visibility'
 
-const INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]'
+const INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 const LABEL = 'block text-xs font-medium text-gray-700 mb-1.5'
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
@@ -549,7 +549,7 @@ export default function ProductsPage() {
             {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}{t.common.export} CSV
           </button>
           <button onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm">
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm">
             <Plus size={15} />{t.products.new}
           </button>
         </div>
@@ -607,7 +607,7 @@ export default function ProductsPage() {
                     onChange={e => { productType === 'simple' ? setSimpleForm(f => ({ ...f, name: e.target.value })) : setVarForm2(f => ({ ...f, name: e.target.value })) }}
                     onKeyDown={e => e.key === 'Enter' && continueToStep2()}
                     placeholder={t.products.fields.name}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]"
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <div>
@@ -615,8 +615,8 @@ export default function ProductsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     {(['simple', 'variations'] as const).map(pt => (
                       <button key={pt} type="button" onClick={() => setProductType(pt)}
-                        className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${productType === pt ? 'border-[#d4a017] bg-[#d4a017]/10' : 'border-gray-200 hover:border-gray-300'}`}>
-                        {pt === 'simple' ? <Package size={30} className={productType === pt ? 'text-[#d4a017]' : 'text-gray-400'} /> : <Layers size={30} className={productType === pt ? 'text-[#d4a017]' : 'text-gray-400'} />}
+                        className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${productType === pt ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'}`}>
+                        {pt === 'simple' ? <Package size={30} className={productType === pt ? 'text-primary' : 'text-gray-400'} /> : <Layers size={30} className={productType === pt ? 'text-primary' : 'text-gray-400'} />}
                         <div className="text-center">
                           <div className={`font-semibold text-sm ${productType === pt ? 'text-gray-900' : 'text-gray-500'}`}>{pt === 'simple' ? t.products.type.simple : t.products.type.variations}</div>
                           <div className="text-xs text-gray-500 mt-0.5">{pt === 'simple' ? t.products.type.simpleDesc : t.products.type.variationsDesc}</div>
@@ -626,7 +626,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
                 <button type="button" onClick={continueToStep2}
-                  className="w-full py-3.5 bg-[#d4a017] text-black font-bold rounded-xl text-sm hover:bg-[#b8891a] transition-colors">
+                  className="w-full py-3.5 bg-primary text-black font-bold rounded-xl text-sm hover:bg-primary-dark transition-colors">
                   {t.common.next} →
                 </button>
               </div>
@@ -672,7 +672,7 @@ export default function ProductsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-semibold text-gray-700">{t.products.variation.title}</label>
-                        <button type="button" onClick={addVarRow} className="text-xs text-[#d4a017] hover:text-[#b8891a] flex items-center gap-1"><Plus size={12} />{t.products.variation.addRow}</button>
+                        <button type="button" onClick={addVarRow} className="text-xs text-primary hover:text-primary-dark flex items-center gap-1"><Plus size={12} />{t.products.variation.addRow}</button>
                       </div>
                       <div className="grid grid-cols-9 gap-1.5 text-xs text-gray-500 px-1">
                         <div className="col-span-2">{t.products.variation.sku}</div><div className="col-span-3">{t.products.variation.name}</div>
@@ -680,11 +680,11 @@ export default function ProductsPage() {
                       </div>
                       {varForm2.rows.map((r, i) => (
                         <div key={i} className="grid grid-cols-9 gap-1.5 items-center">
-                          <input value={r.sku} onChange={e => setVarRowField(i, 'sku', e.target.value)} placeholder="SKU-S" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
-                          <input value={r.name} onChange={e => setVarRowField(i, 'name', e.target.value)} placeholder={t.products.variation.name} className="col-span-3 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
-                          <input type="number" step="0.01" value={r.price} onChange={e => setVarRowField(i, 'price', e.target.value)} placeholder="0.00" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
+                          <input value={r.sku} onChange={e => setVarRowField(i, 'sku', e.target.value)} placeholder="SKU-S" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                          <input value={r.name} onChange={e => setVarRowField(i, 'name', e.target.value)} placeholder={t.products.variation.name} className="col-span-3 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                          <input type="number" step="0.01" value={r.price} onChange={e => setVarRowField(i, 'price', e.target.value)} placeholder="0.00" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
                           <div className="col-span-2 flex items-center gap-1">
-                            <input type="number" step="0.001" value={r.weight} onChange={e => setVarRowField(i, 'weight', e.target.value)} placeholder="0.000" className="flex-1 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
+                            <input type="number" step="0.001" value={r.weight} onChange={e => setVarRowField(i, 'weight', e.target.value)} placeholder="0.000" className="flex-1 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
                             {varForm2.rows.length > 1 && <button type="button" onClick={() => removeVarRow(i)} className="p-1.5 text-gray-500 hover:text-red-400"><Trash2 size={12} /></button>}
                           </div>
                         </div>
@@ -693,7 +693,7 @@ export default function ProductsPage() {
                   </div>
                 )}
                 <button type="submit" disabled={saving}
-                  className="w-full py-3.5 bg-[#d4a017] text-black font-bold rounded-xl text-sm hover:bg-[#b8891a] disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="w-full py-3.5 bg-primary text-black font-bold rounded-xl text-sm hover:bg-primary-dark disabled:opacity-50 flex items-center justify-center gap-2">
                     {saving && <Loader2 size={14} className="animate-spin" />}{t.common.save}
                 </button>
               </form>
@@ -722,7 +722,7 @@ export default function ProductsPage() {
               {EDIT_TABS.map(tab => (
                 <button key={tab.key} type="button" onClick={() => setEditTab(tab.key)}
                   className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                    editTab === tab.key ? 'border-[#d4a017] text-[#b8891a]' : 'border-transparent text-gray-500 hover:text-gray-700'
+                    editTab === tab.key ? 'border-primary text-primary-dark' : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}>
                   <tab.icon size={14} />{tab.label}
                 </button>
@@ -790,7 +790,7 @@ export default function ProductsPage() {
                       <p className="text-sm font-semibold text-gray-700">{t.products.variation.title} ({editModalVariations.length})</p>
                       {!addingModalVar && (
                         <button type="button" onClick={() => { setAddingModalVar(true); setEditingModalVar(null) }}
-                          className="flex items-center gap-1.5 text-xs text-[#d4a017] hover:text-[#b8891a] font-semibold border border-[#d4a017]/40 px-3 py-1.5 rounded-lg">
+                          className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-dark font-semibold border border-primary/40 px-3 py-1.5 rounded-lg">
                           <Plus size={13} />{t.products.variation.add}
                         </button>
                       )}
@@ -842,7 +842,7 @@ export default function ProductsPage() {
                                   </td>
                                   <td className="px-3 py-2.5">
                                     <div className="flex gap-1">
-                                      <button type="button" onClick={() => { startEditModalVar(v); setAddingModalVar(false) }} className="p-1 text-gray-400 hover:text-[#d4a017] rounded"><Edit2 size={13} /></button>
+                                      <button type="button" onClick={() => { startEditModalVar(v); setAddingModalVar(false) }} className="p-1 text-gray-400 hover:text-primary rounded"><Edit2 size={13} /></button>
                                       <button type="button" onClick={() => deleteModalVar(v.id)} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 size={13} /></button>
                                     </div>
                                   </td>
@@ -851,7 +851,7 @@ export default function ProductsPage() {
                             </tr>
                           ))}
                           {addingModalVar && (
-                            <tr className="bg-yellow-50/60 border-t-2 border-[#d4a017]/30">
+                            <tr className="bg-yellow-50/60 border-t-2 border-primary/30">
                               <td className="px-2 py-2"><input autoFocus placeholder="SKU*" value={newModalVarForm.sku} onChange={e => setNewModalVarForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1.5 w-full text-xs" /></td>
                                   <td className="px-2 py-2"><input placeholder={t.products.addNewRowNamePlaceholder} value={newModalVarForm.name} onChange={e => setNewModalVarForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1.5 w-full text-xs" /></td>
                               <td className="px-2 py-2"><input type="number" step="0.01" placeholder="0.00" value={newModalVarForm.price} onChange={e => setNewModalVarForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1.5 w-20 text-xs" /></td>
@@ -881,7 +881,7 @@ export default function ProductsPage() {
                       <label className={LABEL}>{t.products.fields.minOrderQty}</label>
                       <div className="flex items-center gap-3">
                         <input type="number" min="1" value={editForm.minOrderQty} onChange={e => setEditForm(f => ({ ...f, minOrderQty: e.target.value }))}
-                          placeholder="1" className="w-32 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
+                          placeholder="1" className="w-32 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                         <span className="text-xs text-gray-500">{t.common.optional}</span>
                       </div>
                     </div>
@@ -929,7 +929,7 @@ export default function ProductsPage() {
                         {STATUS_OPTIONS.map(s => (
                           <button key={s} type="button" onClick={() => setEditForm(f => ({ ...f, status: s }))}
                             className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                              editForm.status === s ? 'border-[#d4a017] bg-[#d4a017]/10' : 'border-gray-200 hover:border-gray-300'
+                              editForm.status === s ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-gray-300'
                             }`}>
                             <div className={`w-3 h-3 rounded-full ${s === 'ACTIVE' ? 'bg-green-500' : s === 'INACTIVE' ? 'bg-gray-400' : 'bg-red-400'}`} />
                             <span className={`text-xs font-semibold ${editForm.status === s ? 'text-gray-900' : 'text-gray-500'}`}>{getStatusLabel(s)}</span>
@@ -944,7 +944,7 @@ export default function ProductsPage() {
                         <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))}
                             placeholder={t.products.fields.tagsPlaceholder}
-                          className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]" />
+                          className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                       </div>
                           <p className="text-xs text-gray-400 mt-1.5">{t.products.fields.tagsHint}</p>
                     </div>
@@ -959,7 +959,7 @@ export default function ProductsPage() {
                           </div>
                         </div>
                         <button type="button" onClick={() => setEditForm(f => ({ ...f, isFeatured: !f.isFeatured }))}
-                          className={`relative w-11 h-6 rounded-full transition-colors ${editForm.isFeatured ? 'bg-[#d4a017]' : 'bg-gray-300'}`}>
+                          className={`relative w-11 h-6 rounded-full transition-colors ${editForm.isFeatured ? 'bg-primary' : 'bg-gray-300'}`}>
                           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${editForm.isFeatured ? 'translate-x-5' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
@@ -988,7 +988,7 @@ export default function ProductsPage() {
                 </div>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setEditProduct(null)} className="px-5 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
-                  <button type="submit" disabled={editSaving} className="flex items-center gap-2 px-6 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+                  <button type="submit" disabled={editSaving} className="flex items-center gap-2 px-6 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
                     {editSaving && <Loader2 size={13} className="animate-spin" />}{t.common.update}
                   </button>
                 </div>
@@ -1002,21 +1002,21 @@ export default function ProductsPage() {
       <div className="flex flex-wrap gap-2">
         <input type="text" placeholder={t.products.searchPlaceholder} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] w-52" />
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-52" />
         <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] bg-white">
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
           <option value="">{t.products.allStatus}</option>
           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
         </select>
         {categories.length > 0 && (
           <select value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1) }}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] bg-white">
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
             <option value="">{t.products.allCategories}</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
         <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] bg-white">
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
           <option value="created_desc">{t.products.sort.newest}</option>
           <option value="created_asc">{t.products.sort.oldest}</option>
           <option value="name_asc">{t.products.sort.nameAZ}</option>
@@ -1066,7 +1066,7 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5">
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-[#d4a017] hover:bg-yellow-50 rounded-lg" title={t.common.edit}><Edit2 size={14} /></button>
+                        <button onClick={() => openEdit(p)} className="p-1.5 text-gray-400 hover:text-primary hover:bg-yellow-50 rounded-lg" title={t.common.edit}><Edit2 size={14} /></button>
                         <button onClick={() => duplicateProduct(p)} disabled={duplicatingId === p.id} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50" title={t.common.copy}>{duplicatingId === p.id ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}</button>
                         <button onClick={() => handleDelete(p.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title={t.common.delete}><Trash2 size={14} /></button>
                       </div>
@@ -1152,7 +1152,7 @@ export default function ProductsPage() {
                                           </td>
                                           <td className="px-4 py-3">
                                             <div className="flex gap-1">
-                                              <button onClick={() => { openEditVar(p.id, v); setAddingVarTo(null) }} className="p-1 text-gray-400 hover:text-[#d4a017] rounded"><Edit2 size={13} /></button>
+                                              <button onClick={() => { openEditVar(p.id, v); setAddingVarTo(null) }} className="p-1 text-gray-400 hover:text-primary rounded"><Edit2 size={13} /></button>
                                               <button onClick={() => deleteVariationFn(p.id, v.id)} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 size={13} /></button>
                                             </div>
                                           </td>
@@ -1161,7 +1161,7 @@ export default function ProductsPage() {
                                     </tr>
                                   ))}
                                   {addingVarTo === p.id ? (
-                                    <tr className="border-t-2 border-[#d4a017]/30 bg-yellow-50/50">
+                                    <tr className="border-t-2 border-primary/30 bg-yellow-50/50">
                                       <td className="px-4 pt-2 pb-2"><input autoFocus placeholder={`${t.products.fields.sku}*`} value={newVarForm.sku} onChange={e => setNewVarForm(f => ({ ...f, sku: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
                                       <td className="px-4 pt-2 pb-2"><input placeholder={t.products.addNewRowNamePlaceholder} value={newVarForm.name} onChange={e => setNewVarForm(f => ({ ...f, name: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-full" /></td>
                                       <td className="px-4 pt-2 pb-2"><input type="number" step="0.01" placeholder={t.products.variation.price} value={newVarForm.price} onChange={e => setNewVarForm(f => ({ ...f, price: e.target.value }))} className="border border-gray-300 rounded px-2 py-1 w-28" /></td>
@@ -1178,7 +1178,7 @@ export default function ProductsPage() {
                                     <tr>
                                       <td colSpan={6} className="px-4 py-3">
                                         <button onClick={() => { openAddVar(p.id); setEditingVariation(null) }}
-                                          className="flex items-center gap-1.5 text-sm text-[#d4a017] hover:text-[#b8891a] font-semibold py-1">
+                                          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-dark font-semibold py-1">
                                           <Plus size={14} />{t.products.variation.add}
                                         </button>
                                       </td>

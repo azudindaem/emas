@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { orders as ordersApi } from '@/lib/api'
 import { Badge, Pagination } from '@/components/ui'
 import { useLocale } from '@/lib/locale'
-import { Eye, X, Loader2, ChevronDown } from 'lucide-react'
+import { Eye, X, Loader2, ChevronDown, Plus } from 'lucide-react'
 
 interface OrderItem {
   id: string
@@ -107,6 +108,12 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t.orders.title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{meta.total} {t.orders.title.toLowerCase()}</p>
         </div>
+        <Link
+          href="/dashboard/orders/new"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-black rounded-lg text-sm font-semibold hover:bg-primary-dark"
+        >
+          <Plus size={15} /> {t.orders.create.createOrder}
+        </Link>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">{error}</div>}
@@ -115,9 +122,9 @@ export default function OrdersPage() {
       <div className="flex gap-3 flex-wrap">
         <input type="text" placeholder={t.orders.searchPlaceholder} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] w-64" />
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64" />
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]">
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t.orders.allStatus}</option>
           {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -141,7 +148,7 @@ export default function OrdersPage() {
                     <tr><td colSpan={7} className="text-center py-12 text-gray-400">{t.orders.noOrders}</td></tr>
                   ) : items.map(o => (
                     <tr key={o.id} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected?.id === o.id ? 'bg-yellow-50' : ''}`} onClick={() => openDetail(o.id)}>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-[#d4a017]">{o.orderNo}</td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{o.orderNo}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{o.customerName}</p>
                         <p className="text-xs text-gray-400">{o.customerPhone}</p>
@@ -184,7 +191,7 @@ export default function OrdersPage() {
                     <ChevronDown size={14} className="absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
                   </div>
                   <button onClick={handleUpdateStatus} disabled={updatingStatus || newStatus === selected.status}
-                    className="px-3 py-2 bg-[#d4a017] text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-[#b8891a]">
+                    className="px-3 py-2 bg-primary text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-primary-dark">
                     {updatingStatus ? <Loader2 size={13} className="animate-spin" /> : t.orders.update}
                   </button>
                 </div>
@@ -200,7 +207,7 @@ export default function OrdersPage() {
                     <ChevronDown size={14} className="absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
                   </div>
                   <button onClick={handleUpdatePayment} disabled={updatingPayment || newPayment === selected.paymentStatus}
-                    className="px-3 py-2 bg-[#d4a017] text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-[#b8891a]">
+                    className="px-3 py-2 bg-primary text-black text-xs font-semibold rounded-lg disabled:opacity-40 hover:bg-primary-dark">
                     {updatingPayment ? <Loader2 size={13} className="animate-spin" /> : t.orders.update}
                   </button>
                 </div>

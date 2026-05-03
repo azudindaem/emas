@@ -65,6 +65,8 @@ export class OrderService {
   async create(tenantId: string, ownerId: string, dto: CreateOrderDto): Promise<Record<string, unknown>> {
     const shippingFee = this.asMoney(dto.shippingFee ?? 0)
     const discount = this.asMoney(dto.discount ?? 0)
+    const customerPhone = String(dto.customerPhone ?? '').trim()
+    const customerName = String(dto.customerName ?? '').trim()
 
     const preparedItems = dto.items.map((item) => {
       const unitPrice = this.asMoney(item.unitPrice)
@@ -81,27 +83,66 @@ export class OrderService {
     )
     const total = this.asMoney(Number(subtotal) + Number(shippingFee) - Number(discount))
 
-    const order = await this.prisma.order.create({
-      data: {
-        tenantId,
-        ownerId,
-        orderNo: dto.orderNo ?? this.generateOrderNo(),
-        brandId: dto.brandId,
-        customerId: dto.customerId,
-        customerName: dto.customerName,
-        customerPhone: dto.customerPhone,
-        customerEmail: dto.customerEmail,
-        shippingAddress: dto.shippingAddress as Prisma.InputJsonValue,
-        notes: dto.notes,
-        subtotal,
-        shippingFee,
-        discount,
-        total,
-        items: {
-          create: preparedItems,
+    const shippingAddress = dto.shippingAddress as Prisma.InputJsonValue
+
+    const order = await this.prisma.$transaction(async (tx) => {
+      let customerId = dto.customerId
+
+      if (!customerId && customerPhone) {
+        const existingCustomer = await tx.customer.findUnique({
+          where: { tenantId_phone: { tenantId, phone: customerPhone } },
+        })
+
+        if (existingCustomer) {
+          const updatedCustomer = await tx.customer.update({
+            where: { id: existingCustomer.id },
+            data: {
+              name: customerName,
+              email: dto.customerEmail,
+              address: shippingAddress,
+              totalOrders: { increment: 1 },
+              totalSpent: { increment: Number(total) },
+            },
+          })
+          customerId = updatedCustomer.id
+        } else {
+          const createdCustomer = await tx.customer.create({
+            data: {
+              tenantId,
+              name: customerName,
+              phone: customerPhone,
+              email: dto.customerEmail,
+              address: shippingAddress,
+              totalOrders: 1,
+              totalSpent: Number(total),
+            },
+          })
+          customerId = createdCustomer.id
+        }
+      }
+
+      return tx.order.create({
+        data: {
+          tenantId,
+          ownerId,
+          orderNo: dto.orderNo ?? this.generateOrderNo(),
+          brandId: dto.brandId,
+          customerId,
+          customerName,
+          customerPhone,
+          customerEmail: dto.customerEmail,
+          shippingAddress,
+          notes: dto.notes,
+          subtotal,
+          shippingFee,
+          discount,
+          total,
+          items: {
+            create: preparedItems,
+          },
         },
-      },
-      include: { items: true },
+        include: { items: true },
+      })
     })
 
     return order as unknown as Record<string, unknown>

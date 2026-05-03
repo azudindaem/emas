@@ -86,7 +86,7 @@ export default function InvoicesPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t.invoices.title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{meta.total} {t.invoices.title.toLowerCase()}</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm">
           <Plus size={15} />{t.invoices.generateBtn}
         </button>
       </div>
@@ -115,7 +115,7 @@ export default function InvoicesPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button type="submit" disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]">
+            <button type="submit" disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark">
               {saving && <Loader2 size={13} className="animate-spin" />}{t.invoices.generate}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">{t.common.cancel}</button>
@@ -126,9 +126,9 @@ export default function InvoicesPage() {
       <div className="flex gap-3">
         <input type="text" placeholder={t.invoices.searchPlaceholder} value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017] w-64" />
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary w-64" />
         <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#d4a017]">
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t.invoices.allTypes}</option>
           {INVOICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -152,7 +152,7 @@ export default function InvoicesPage() {
                   ) : items.map(inv => (
                     <tr key={inv.id} className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected?.id === inv.id ? 'bg-yellow-50' : ''}`}
                       onClick={() => openDetail(inv.id)}>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-[#d4a017]">{inv.invoiceNo}</td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">{inv.invoiceNo}</td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-600">{inv.order?.orderNo ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-700">{inv.order?.customerName ?? '—'}</td>
                       <td className="px-4 py-3"><Badge label={inv.type} color={typeColor[inv.type] ?? 'gray'} /></td>

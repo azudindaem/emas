@@ -128,7 +128,7 @@ export default function BrandsPage() {
       {/* White-label Branding */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <h2 className="font-semibold text-gray-800 mb-5 flex items-center gap-2">
-          <Palette size={18} className="text-[#d4a017]" />
+          <Palette size={18} className="text-primary" />
             {t.brands.whiteLabelTitle}
         </h2>
         <form onSubmit={handleSaveBranding} className="space-y-4">
@@ -206,7 +206,7 @@ export default function BrandsPage() {
           <button
             type="submit"
             disabled={savingBranding}
-            className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] disabled:opacity-50 transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors text-sm"
           >
             {savingBranding ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             {t.brands.saveBranding}
@@ -221,7 +221,7 @@ export default function BrandsPage() {
                     <h2 className="font-semibold text-gray-800">{t.brands.brandList}</h2>
           <button
             onClick={() => setShowBrandForm(!showBrandForm)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm"
           >
             <Plus size={14} />
             {t.brands.newBrand}
@@ -255,7 +255,7 @@ export default function BrandsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]"
+                className="px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : t.common.save}
               </button>

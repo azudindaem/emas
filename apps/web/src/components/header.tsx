@@ -70,7 +70,7 @@ export function Header() {
                 key={l.key}
                 onClick={() => { setLocale(l.key); setOpen(false) }}
                 className={`flex items-center justify-between w-full px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                  locale === l.key ? 'text-[#b8891a] font-semibold' : 'text-gray-700'
+                  locale === l.key ? 'text-primary-dark font-semibold' : 'text-gray-700'
                 }`}
               >
                 <span>{LOCALE_FLAGS[l.key]} {l.label}</span>

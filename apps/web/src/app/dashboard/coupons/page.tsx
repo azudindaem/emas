@@ -107,7 +107,7 @@ export default function CouponsPage() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors"
         >
           <Plus size={16} />
           {t.coupons.newCoupon}
@@ -225,7 +225,7 @@ export default function CouponsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] disabled:opacity-50 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors text-sm"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
               {t.coupons.saveCoupon}
@@ -269,7 +269,7 @@ export default function CouponsPage() {
             <tbody className="divide-y divide-gray-100">
               {items.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 font-mono font-bold text-[#d4a017]">{item.code}</td>
+                  <td className="px-5 py-3 font-mono font-bold text-primary">{item.code}</td>
                   <td className="px-5 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
                       item.type === 'PERCENTAGE' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'

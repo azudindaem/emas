@@ -150,14 +150,14 @@ export default function RolesPage() {
             onClick={() => setActiveTab(tab.id as 'roles' | 'automations')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id
-                ? 'border-[#d4a017] text-[#b8891a]'
+                ? 'border-primary text-primary-dark'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             <tab.icon size={15} />
             {tab.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeTab === tab.id ? 'bg-[#d4a017]/20 text-[#b8891a]' : 'bg-gray-100 text-gray-500'
+              activeTab === tab.id ? 'bg-primary/20 text-primary-dark' : 'bg-gray-100 text-gray-500'
             }`}>
               {tab.id === 'roles' ? roleList.length : automationList.length}
             </span>
@@ -170,7 +170,7 @@ export default function RolesPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowRoleForm(!showRoleForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm"
             >
               <Plus size={14} />
               {t.roles.newRole}
@@ -207,7 +207,7 @@ export default function RolesPage() {
                 <button
                   type="submit"
                   disabled={savingRole}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark"
                 >
                   {savingRole && <Loader2 size={13} className="animate-spin" />}
                   {t.common.save}
@@ -228,8 +228,8 @@ export default function RolesPage() {
             ) : roleList.map(role => (
               <div key={role.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="flex items-center px-5 py-4">
-                  <div className="w-9 h-9 rounded-lg bg-[#d4a017]/15 flex items-center justify-center mr-4">
-                    <ShieldCheck size={16} className="text-[#d4a017]" />
+                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center mr-4">
+                    <ShieldCheck size={16} className="text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ export default function RolesPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setShowAutoForm(!showAutoForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg hover:bg-[#b8891a] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg hover:bg-primary-dark transition-colors text-sm"
             >
               <Plus size={14} />
               {t.roles.newAutomation}
@@ -342,7 +342,7 @@ export default function RolesPage() {
                 <button
                   type="submit"
                   disabled={savingAuto}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#d4a017] text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-[#b8891a]"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark"
                 >
                   {savingAuto && <Loader2 size={13} className="animate-spin" />}
                   {t.common.save}
