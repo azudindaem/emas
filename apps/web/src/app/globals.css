@@ -5,3 +5,11 @@
   --color-sidebar: #1a1a2e;
   --color-sidebar-hover: #16213e;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}

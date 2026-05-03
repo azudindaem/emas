@@ -1,4 +1,4 @@
-emas.my E-commerce Management & Automation System
+emas.my # EMAS — E-commerce Management & Automation System
 
 ## Execution Checklist (Proceed One by One)
 

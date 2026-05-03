@@ -5,7 +5,9 @@ import './globals.css'
 import { AuthProvider } from '@/components/auth-provider'
 
 export const metadata: Metadata = {
-  title: 'emas.my',
+  title: 'Emas — Platform Pengurusan Pesanan & Cetakan Malaysia',
+  description:
+    'Platform SaaS all-in-one untuk urus pesanan, cetak AWB, dan integrasikan kurier kegemaran anda. NinjaVan, J&T, POS Malaysia & lebih lagi.',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
