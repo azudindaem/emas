@@ -22,6 +22,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -32,6 +33,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const { t } = useLocale()
+
+  const isSettingsActive = pathname.startsWith('/dashboard/settings')
 
   const navItems = [
     { href: '/dashboard', label: t.nav.overview, icon: LayoutDashboard },
@@ -48,7 +51,11 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     { href: '/dashboard/roles', label: t.nav.roles, icon: ShieldCheck },
     { href: '/dashboard/team', label: t.nav.team, icon: Users },
     { href: '/dashboard/notifications', label: t.nav.notifications, icon: Bell },
-    { href: '/dashboard/settings/shipping', label: t.nav.settings, icon: Settings },
+  ]
+
+  const settingsSubItems = [
+    { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
+    { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
   ]
 
   return (
@@ -82,6 +89,54 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             </Link>
           )
         })}
+
+        {/* Settings group */}
+        <div>
+          {collapsed ? (
+            <Link
+              href="/dashboard/settings/shipping"
+              title={t.nav.settings}
+              className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                isSettingsActive
+                  ? 'bg-primary/20 text-black font-semibold border border-primary/60'
+                  : 'text-slate-700 hover:bg-orange-50 hover:text-black'
+              }`}
+            >
+              <Settings size={18} />
+            </Link>
+          ) : (
+            <>
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                isSettingsActive
+                  ? 'bg-primary/10 text-black font-semibold'
+                  : 'text-slate-700'
+              }`}>
+                <Settings size={18} />
+                <span>{t.nav.settings}</span>
+              </div>
+              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+                {settingsSubItems.map(({ href, label, icon: Icon }) => {
+                  const active = pathname.startsWith(href)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        active
+                          ? 'bg-primary/20 text-black font-semibold border border-primary/60'
+                          : 'text-slate-600 hover:bg-orange-50 hover:text-black'
+                      }`}
+                    >
+                      <Icon size={15} />
+                      <span>{label}</span>
+                      {active && <ChevronRight size={13} className="ml-auto text-primary-dark" />}
+                    </Link>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </nav>
 
       {/* User + Logout */}

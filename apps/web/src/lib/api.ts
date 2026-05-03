@@ -282,3 +282,13 @@ export const roles = {
   trigger: (data: { event: string; userId: string; context?: Record<string, unknown> }) =>
     request<unknown>('/role/automation/trigger', { method: 'POST', body: JSON.stringify(data) }),
 }
+
+// ─── Payment Settings ─────────────────────────────────────────────────────────
+
+export const paymentSettings = {
+  listAll: () => request<{ gateway: string; isEnabled: boolean; config: Record<string, unknown> }[]>('/payment-settings'),
+  getOne: (gateway: string) =>
+    request<{ gateway: string; isEnabled: boolean; config: Record<string, unknown> }>(`/payment-settings/${gateway}`),
+  upsert: (gateway: string, data: { isEnabled: boolean; config: Record<string, unknown> }) =>
+    request<unknown>(`/payment-settings/${gateway}`, { method: 'PUT', body: JSON.stringify(data) }),
+}

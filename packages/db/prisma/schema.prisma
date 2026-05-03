@@ -45,6 +45,7 @@ model Tenant {
   shippingDefaults ShippingDefaultSetting?
   customers    Customer[]
   webhooks     Webhook[]
+  paymentGatewayConfigs PaymentGatewayConfig[]
 
   @@index([slug])
 }
@@ -525,6 +526,25 @@ model NotificationConfig {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, channel])
+  @@index([tenantId])
+}
+
+// ─────────────────────────────────────────────────────────
+// PAYMENT GATEWAY CONFIG
+// ─────────────────────────────────────────────────────────
+
+model PaymentGatewayConfig {
+  id        String   @id @default(uuid())
+  tenantId  String
+  gateway   String   // GENERAL, CHIP, STRIPE, AHAPAY, BILLPLZ, BAYARCASH, TOYYIBPAY
+  config    Json
+  isEnabled Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, gateway])
   @@index([tenantId])
 }
 
