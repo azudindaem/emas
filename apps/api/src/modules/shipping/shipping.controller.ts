@@ -25,6 +25,11 @@ import {
   TrackShipmentDto,
   GetRateDto,
   ListShipmentsQueryDto,
+  CreateShippingZoneDto,
+  UpdateShippingZoneDto,
+  CreateShippingRateDto,
+  UpdateShippingRateDto,
+  UpdateShippingDefaultSettingDto,
 } from './dto/shipping.dto'
 
 @ApiTags('shipping')
@@ -162,6 +167,109 @@ export class ShippingController {
   @ApiOperation({ summary: 'Courier webhook receiver (no auth required)' })
   handleWebhook(@Param('provider') provider: string, @Body() payload: Record<string, unknown>) {
     return this.shippingService.handleWebhook(provider, payload)
+  }
+
+  // ─── Shipping Zones ──────────────────────────────────────────────────────
+
+  @Get('zones')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.read')
+  @ApiOperation({ summary: 'List shipping zones' })
+  listShippingZones(@CurrentTenant() tenant: TenantContext): Promise<unknown[]> {
+    return this.shippingService.listShippingZones(tenant.id)
+  }
+
+  @Post('zones')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Create shipping zone' })
+  createShippingZone(@CurrentTenant() tenant: TenantContext, @Body() dto: CreateShippingZoneDto): Promise<unknown> {
+    return this.shippingService.createShippingZone(tenant.id, dto)
+  }
+
+  @Patch('zones/:id')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Update shipping zone' })
+  updateShippingZone(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @Body() dto: UpdateShippingZoneDto,
+  ): Promise<unknown> {
+    return this.shippingService.updateShippingZone(tenant.id, id, dto)
+  }
+
+  @Delete('zones/:id')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Delete shipping zone' })
+  deleteShippingZone(@CurrentTenant() tenant: TenantContext, @Param('id') id: string): Promise<unknown> {
+    return this.shippingService.deleteShippingZone(tenant.id, id)
+  }
+
+  // ─── Shipping Rates ──────────────────────────────────────────────────────
+
+  @Get('zones/:zoneId/rates')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.read')
+  @ApiOperation({ summary: 'List rates for a shipping zone' })
+  listShippingRates(@CurrentTenant() tenant: TenantContext, @Param('zoneId') zoneId: string): Promise<unknown[]> {
+    return this.shippingService.listShippingRates(tenant.id, zoneId)
+  }
+
+  @Post('zones/:zoneId/rates')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Add rate to a shipping zone' })
+  createShippingRate(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('zoneId') zoneId: string,
+    @Body() dto: CreateShippingRateDto,
+  ): Promise<unknown> {
+    return this.shippingService.createShippingRate(tenant.id, zoneId, dto)
+  }
+
+  @Patch('zones/:zoneId/rates/:rateId')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Update a shipping rate' })
+  updateShippingRate(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('zoneId') zoneId: string,
+    @Param('rateId') rateId: string,
+    @Body() dto: UpdateShippingRateDto,
+  ): Promise<unknown> {
+    return this.shippingService.updateShippingRate(tenant.id, zoneId, rateId, dto)
+  }
+
+  @Delete('zones/:zoneId/rates/:rateId')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Delete a shipping rate' })
+  deleteShippingRate(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('zoneId') zoneId: string,
+    @Param('rateId') rateId: string,
+  ): Promise<unknown> {
+    return this.shippingService.deleteShippingRate(tenant.id, zoneId, rateId)
+  }
+
+  // ─── Default Settings ────────────────────────────────────────────────────
+
+  @Get('settings/defaults')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.read')
+  @ApiOperation({ summary: 'Get shipping default settings' })
+  getShippingDefaults(@CurrentTenant() tenant: TenantContext): Promise<unknown> {
+    return this.shippingService.getShippingDefaults(tenant.id)
+  }
+
+  @Patch('settings/defaults')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Update shipping default settings' })
+  updateShippingDefaults(@CurrentTenant() tenant: TenantContext, @Body() dto: UpdateShippingDefaultSettingDto): Promise<unknown> {
+    return this.shippingService.updateShippingDefaults(tenant.id, dto)
   }
 }
 

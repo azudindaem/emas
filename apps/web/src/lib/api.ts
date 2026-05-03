@@ -149,6 +149,26 @@ export const shipping = {
     request<unknown>('/shipping/awb', { method: 'POST', body: JSON.stringify(data) }),
   trackShipment: (trackingNo: string, provider: string) =>
     request<unknown>('/shipping/track', { method: 'POST', body: JSON.stringify({ trackingNo, provider }) }),
+  // Zones
+  listZones: () => request<unknown[]>('/shipping/zones'),
+  createZone: (data: unknown) =>
+    request<unknown>('/shipping/zones', { method: 'POST', body: JSON.stringify(data) }),
+  updateZone: (id: string, data: unknown) =>
+    request<unknown>(`/shipping/zones/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteZone: (id: string) =>
+    request<unknown>(`/shipping/zones/${id}`, { method: 'DELETE' }),
+  // Rates
+  listRates: (zoneId: string) => request<unknown[]>(`/shipping/zones/${zoneId}/rates`),
+  createRate: (zoneId: string, data: unknown) =>
+    request<unknown>(`/shipping/zones/${zoneId}/rates`, { method: 'POST', body: JSON.stringify(data) }),
+  updateRate: (zoneId: string, rateId: string, data: unknown) =>
+    request<unknown>(`/shipping/zones/${zoneId}/rates/${rateId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteRate: (zoneId: string, rateId: string) =>
+    request<unknown>(`/shipping/zones/${zoneId}/rates/${rateId}`, { method: 'DELETE' }),
+  // Default Settings
+  getDefaults: () => request<unknown>('/shipping/settings/defaults'),
+  updateDefaults: (data: unknown) =>
+    request<unknown>('/shipping/settings/defaults', { method: 'PATCH', body: JSON.stringify(data) }),
 }
 
 // ─── Invoice ──────────────────────────────────────────────────────────────────

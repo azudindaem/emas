@@ -18,6 +18,7 @@ import {
   Tag,
   Palette,
   ShieldCheck,
+  Settings,
   LogOut,
   ChevronRight,
 } from 'lucide-react'
@@ -41,6 +42,7 @@ export function Sidebar() {
     { href: '/dashboard/roles', label: t.nav.roles, icon: ShieldCheck },
     { href: '/dashboard/team', label: t.nav.team, icon: Users },
     { href: '/dashboard/notifications', label: t.nav.notifications, icon: Bell },
+    { href: '/dashboard/settings/shipping', label: t.nav.settings, icon: Settings },
   ]
 
   return (

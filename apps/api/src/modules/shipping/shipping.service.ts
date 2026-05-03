@@ -10,6 +10,11 @@ import {
   TrackShipmentDto,
   GetRateDto,
   ListShipmentsQueryDto,
+  CreateShippingZoneDto,
+  UpdateShippingZoneDto,
+  CreateShippingRateDto,
+  UpdateShippingRateDto,
+  UpdateShippingDefaultSettingDto,
 } from './dto/shipping.dto'
 
 @Injectable()
@@ -290,6 +295,154 @@ export class ShippingService {
     }
 
     return { received: true, processed: !!mappedStatus, awbNo, status: mappedStatus ?? rawStatus }
+  }
+
+  // ─── Shipping Zones ────────────────────────────────────────────────────────
+
+  async listShippingZones(tenantId: string) {
+    return this.prisma.shippingZone.findMany({
+      where: { tenantId },
+      include: { rates: true },
+      orderBy: { createdAt: 'asc' },
+    })
+  }
+
+  async createShippingZone(tenantId: string, dto: CreateShippingZoneDto) {
+    return this.prisma.shippingZone.create({
+      data: {
+        tenantId,
+        name: dto.name,
+        code: dto.code,
+        countries: (dto.countries ?? []) as unknown as Prisma.InputJsonValue,
+        states: (dto.states ?? []) as unknown as Prisma.InputJsonValue,
+        isActive: dto.isActive ?? true,
+      },
+    })
+  }
+
+  async updateShippingZone(tenantId: string, id: string, dto: UpdateShippingZoneDto) {
+    const zone = await this.prisma.shippingZone.findFirst({ where: { id, tenantId } })
+    if (!zone) throw new NotFoundException('Shipping zone not found')
+    return this.prisma.shippingZone.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.code !== undefined && { code: dto.code }),
+        ...(dto.countries !== undefined && { countries: dto.countries as unknown as Prisma.InputJsonValue }),
+        ...(dto.states !== undefined && { states: dto.states as unknown as Prisma.InputJsonValue }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
+    })
+  }
+
+  async deleteShippingZone(tenantId: string, id: string) {
+    const zone = await this.prisma.shippingZone.findFirst({ where: { id, tenantId } })
+    if (!zone) throw new NotFoundException('Shipping zone not found')
+    await this.prisma.shippingZone.delete({ where: { id } })
+    return { success: true }
+  }
+
+  // ─── Shipping Rates ────────────────────────────────────────────────────────
+
+  async listShippingRates(tenantId: string, zoneId: string) {
+    const zone = await this.prisma.shippingZone.findFirst({ where: { id: zoneId, tenantId } })
+    if (!zone) throw new NotFoundException('Shipping zone not found')
+    return this.prisma.shippingRate.findMany({
+      where: { tenantId, zoneId },
+      orderBy: { createdAt: 'asc' },
+    })
+  }
+
+  async createShippingRate(tenantId: string, zoneId: string, dto: CreateShippingRateDto) {
+    const zone = await this.prisma.shippingZone.findFirst({ where: { id: zoneId, tenantId } })
+    if (!zone) throw new NotFoundException('Shipping zone not found')
+    return this.prisma.shippingRate.create({
+      data: {
+        tenantId,
+        zoneId,
+        name: dto.name,
+        rateType: dto.rateType as any,
+        config: dto.config as unknown as Prisma.InputJsonValue,
+        courierId: dto.courierId ?? null,
+        isActive: dto.isActive ?? true,
+      },
+    })
+  }
+
+  async updateShippingRate(tenantId: string, zoneId: string, rateId: string, dto: UpdateShippingRateDto) {
+    const rate = await this.prisma.shippingRate.findFirst({ where: { id: rateId, zoneId, tenantId } })
+    if (!rate) throw new NotFoundException('Shipping rate not found')
+    return this.prisma.shippingRate.update({
+      where: { id: rateId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.rateType !== undefined && { rateType: dto.rateType as any }),
+        ...(dto.config !== undefined && { config: dto.config as unknown as Prisma.InputJsonValue }),
+        ...(dto.courierId !== undefined && { courierId: dto.courierId }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
+    })
+  }
+
+  async deleteShippingRate(tenantId: string, zoneId: string, rateId: string) {
+    const rate = await this.prisma.shippingRate.findFirst({ where: { id: rateId, zoneId, tenantId } })
+    if (!rate) throw new NotFoundException('Shipping rate not found')
+    await this.prisma.shippingRate.delete({ where: { id: rateId } })
+    return { success: true }
+  }
+
+  // ─── Default Settings ──────────────────────────────────────────────────────
+
+  async getShippingDefaults(tenantId: string) {
+    const record = await this.prisma.shippingDefaultSetting.findUnique({ where: { tenantId } })
+    if (!record) {
+      // Return default values if not configured yet
+      return {
+        tenantId,
+        defaultCourierId: null,
+        autoGenerateAwb: false,
+        autoAssignCourier: false,
+        selfPickupEnabled: false,
+        defaultWeightKg: 1,
+        defaultLengthCm: 30,
+        defaultWidthCm: 20,
+        defaultHeightCm: 10,
+        pickupSlaDays: 1,
+        currencyRates: {},
+      }
+    }
+    return record
+  }
+
+  async updateShippingDefaults(tenantId: string, dto: UpdateShippingDefaultSettingDto) {
+    return this.prisma.shippingDefaultSetting.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        defaultCourierId: dto.defaultCourierId ?? null,
+        autoGenerateAwb: dto.autoGenerateAwb ?? false,
+        autoAssignCourier: dto.autoAssignCourier ?? false,
+        selfPickupEnabled: dto.selfPickupEnabled ?? false,
+        defaultWeightKg: dto.defaultWeightKg ?? 1,
+        defaultLengthCm: dto.defaultLengthCm ?? 30,
+        defaultWidthCm: dto.defaultWidthCm ?? 20,
+        defaultHeightCm: dto.defaultHeightCm ?? 10,
+        pickupSlaDays: dto.pickupSlaDays ?? 1,
+        currencyRates: (dto.currencyRates ?? {}) as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        ...(dto.defaultCourierId !== undefined && { defaultCourierId: dto.defaultCourierId }),
+        ...(dto.autoGenerateAwb !== undefined && { autoGenerateAwb: dto.autoGenerateAwb }),
+        ...(dto.autoAssignCourier !== undefined && { autoAssignCourier: dto.autoAssignCourier }),
+        ...(dto.selfPickupEnabled !== undefined && { selfPickupEnabled: dto.selfPickupEnabled }),
+        ...(dto.defaultWeightKg !== undefined && { defaultWeightKg: dto.defaultWeightKg }),
+        ...(dto.defaultLengthCm !== undefined && { defaultLengthCm: dto.defaultLengthCm }),
+        ...(dto.defaultWidthCm !== undefined && { defaultWidthCm: dto.defaultWidthCm }),
+        ...(dto.defaultHeightCm !== undefined && { defaultHeightCm: dto.defaultHeightCm }),
+        ...(dto.pickupSlaDays !== undefined && { pickupSlaDays: dto.pickupSlaDays }),
+        ...(dto.currencyRates !== undefined && { currencyRates: dto.currencyRates as unknown as Prisma.InputJsonValue }),
+      },
+    })
   }
 }
 

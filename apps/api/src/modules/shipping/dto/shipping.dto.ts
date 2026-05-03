@@ -183,3 +183,168 @@ export class ListShipmentsQueryDto {
   @IsString()
   search?: string
 }
+
+// ─── Shipping Zones ───────────────────────────────────────────────────────────
+
+export class CreateShippingZoneDto {
+  @ApiProperty({ example: 'West Malaysia' })
+  @IsString()
+  name: string
+
+  @ApiProperty({ example: 'MY_WEST' })
+  @IsString()
+  code: string
+
+  @ApiPropertyOptional({ example: ['MY'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  countries?: string[]
+
+  @ApiPropertyOptional({ example: ['Selangor', 'KL'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  states?: string[]
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
+}
+
+export class UpdateShippingZoneDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  code?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  countries?: string[]
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  states?: string[]
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
+}
+
+// ─── Shipping Rates ───────────────────────────────────────────────────────────
+
+export class CreateShippingRateDto {
+  @ApiProperty({ example: 'Standard Rate' })
+  @IsString()
+  name: string
+
+  @ApiProperty({ example: 'FLAT' })
+  @IsString()
+  rateType: string
+
+  @ApiProperty({ example: { amount: 8.5 } })
+  @IsObject()
+  config: Record<string, unknown>
+
+  @ApiPropertyOptional({ description: 'Courier account ID (null = all couriers)' })
+  @IsOptional()
+  @IsString()
+  courierId?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
+}
+
+export class UpdateShippingRateDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  rateType?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, unknown>
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  courierId?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
+}
+
+// ─── Shipping Default Settings ─────────────────────────────────────────────────
+
+export class UpdateShippingDefaultSettingDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  defaultCourierId?: string
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  autoGenerateAwb?: boolean
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  autoAssignCourier?: boolean
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  selfPickupEnabled?: boolean
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  defaultWeightKg?: number
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  defaultLengthCm?: number
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  defaultWidthCm?: number
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  defaultHeightCm?: number
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  pickupSlaDays?: number
+
+  @ApiPropertyOptional({ example: { SGD: 3.5 } })
+  @IsOptional()
+  @IsObject()
+  currencyRates?: Record<string, number>
+}

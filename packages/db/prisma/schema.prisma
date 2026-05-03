@@ -40,6 +40,9 @@ model Tenant {
   auditLogs    AuditLog[]
   coupons      Coupon[]
   roleAutomations RoleAutomation[]
+  shippingZones ShippingZone[]
+  shippingRates ShippingRate[]
+  shippingDefaults ShippingDefaultSetting?
 
   @@index([slug])
 }
@@ -709,4 +712,73 @@ model RoleAutomation {
 enum CouponType {
   PERCENTAGE
   FIXED
+}
+
+// ─────────────────────────────────────────────────────────
+// SHIPPING ZONES & RATES
+// ─────────────────────────────────────────────────────────
+
+model ShippingZone {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String
+  countries Json     @default("[]")
+  states    Json     @default("[]")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rates  ShippingRate[]
+
+  @@index([tenantId])
+}
+
+model ShippingRate {
+  id        String           @id @default(uuid())
+  tenantId  String
+  zoneId    String
+  courierId String?
+  name      String
+  rateType  ShippingRateType
+  config    Json             @default("{}")
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  zone   ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([zoneId])
+}
+
+model ShippingDefaultSetting {
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique
+  defaultCourierId   String?
+  autoGenerateAwb    Boolean  @default(false)
+  autoAssignCourier  Boolean  @default(false)
+  selfPickupEnabled  Boolean  @default(false)
+  defaultWeightKg    Decimal  @db.Decimal(6, 3) @default(1)
+  defaultLengthCm    Int      @default(30)
+  defaultWidthCm     Int      @default(20)
+  defaultHeightCm    Int      @default(10)
+  pickupSlaDays      Int      @default(1)
+  currencyRates      Json     @default("{}")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+enum ShippingRateType {
+  FLAT
+  WEIGHT_TIER
+  FREE_SHIPPING
+  COD_SURCHARGE
+  REMOTE_SURCHARGE
 }
