@@ -29,6 +29,53 @@ type ParsedOrder = {
   items?: ParsedItem[]
 }
 
+type CatalogVariant = {
+  sku?: string
+  name?: string
+}
+
+type CatalogProduct = {
+  name?: string
+  variants?: CatalogVariant[]
+}
+
+type CityLookup = {
+  city: string
+  state: string
+  postcode: string
+}
+
+const CITY_LOOKUP: Record<string, CityLookup> = {
+  kajang: { city: 'Kajang', state: 'Selangor', postcode: '43000' },
+  bangi: { city: 'Bangi', state: 'Selangor', postcode: '43650' },
+  shahalam: { city: 'Shah Alam', state: 'Selangor', postcode: '40000' },
+  klang: { city: 'Klang', state: 'Selangor', postcode: '41000' },
+  subangjaya: { city: 'Subang Jaya', state: 'Selangor', postcode: '47500' },
+  puchong: { city: 'Puchong', state: 'Selangor', postcode: '47100' },
+  petalingjaya: { city: 'Petaling Jaya', state: 'Selangor', postcode: '46000' },
+  ampang: { city: 'Ampang', state: 'Selangor', postcode: '68000' },
+  rawang: { city: 'Rawang', state: 'Selangor', postcode: '48000' },
+  kualalumpur: { city: 'Kuala Lumpur', state: 'Kuala Lumpur', postcode: '50000' },
+  putrajaya: { city: 'Putrajaya', state: 'Putrajaya', postcode: '62000' },
+  seremban: { city: 'Seremban', state: 'Negeri Sembilan', postcode: '70000' },
+  johorbahru: { city: 'Johor Bahru', state: 'Johor', postcode: '80000' },
+  batupahat: { city: 'Batu Pahat', state: 'Johor', postcode: '83000' },
+  muar: { city: 'Muar', state: 'Johor', postcode: '84000' },
+  melaka: { city: 'Melaka', state: 'Melaka', postcode: '75000' },
+  alorsetar: { city: 'Alor Setar', state: 'Kedah', postcode: '05000' },
+  sungaipetani: { city: 'Sungai Petani', state: 'Kedah', postcode: '08000' },
+  ipoh: { city: 'Ipoh', state: 'Perak', postcode: '30000' },
+  taiping: { city: 'Taiping', state: 'Perak', postcode: '34000' },
+  kangar: { city: 'Kangar', state: 'Perlis', postcode: '01000' },
+  kotabharu: { city: 'Kota Bharu', state: 'Kelantan', postcode: '15000' },
+  kualaterengganu: { city: 'Kuala Terengganu', state: 'Terengganu', postcode: '20000' },
+  kuantan: { city: 'Kuantan', state: 'Pahang', postcode: '25000' },
+  georgetown: { city: 'George Town', state: 'Pulau Pinang', postcode: '10000' },
+  butterworth: { city: 'Butterworth', state: 'Pulau Pinang', postcode: '12000' },
+  kotakinabalu: { city: 'Kota Kinabalu', state: 'Sabah', postcode: '88000' },
+  kuching: { city: 'Kuching', state: 'Sarawak', postcode: '93000' },
+}
+
 function extractJsonObject(raw: string): string {
   const text = raw.trim()
   if (text.startsWith('{') && text.endsWith('}')) return text
@@ -96,6 +143,116 @@ function sanitizeOrder(input: unknown): ParsedOrder {
   }
 }
 
+function sanitizeCatalog(input: unknown): CatalogProduct[] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .slice(0, 300)
+    .map((entry) => {
+      const product = (entry && typeof entry === 'object') ? entry as Record<string, unknown> : {}
+      const variantsRaw = Array.isArray(product.variants) ? product.variants : []
+      const variants: CatalogVariant[] = variantsRaw
+        .slice(0, 50)
+        .map((v) => {
+          const row = (v && typeof v === 'object') ? v as Record<string, unknown> : {}
+          return {
+            sku: asTrimmedString(row.sku),
+            name: asTrimmedString(row.name),
+          }
+        })
+        .filter((v) => v.sku || v.name)
+
+      return {
+        name: asTrimmedString(product.name),
+        variants,
+      }
+    })
+    .filter((p) => p.name || (p.variants && p.variants.length > 0))
+}
+
+function normalizeCityKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function stateFromPostcode(postcode?: string): string | undefined {
+  const digits = String(postcode ?? '').replace(/\D/g, '')
+  if (digits.length < 2) return undefined
+
+  const prefix = Number(digits.slice(0, 2))
+  if (Number.isNaN(prefix)) return undefined
+
+  if (prefix >= 1 && prefix <= 2) return 'Johor'
+  if (prefix >= 5 && prefix <= 9) return 'Kedah'
+  if (prefix >= 10 && prefix <= 19) return 'Kelantan'
+  if (prefix >= 20 && prefix <= 24) return 'Terengganu'
+  if (prefix >= 25 && prefix <= 28) return 'Pahang'
+  if (prefix >= 30 && prefix <= 36) return 'Perak'
+  if (prefix >= 39 && prefix <= 49) return 'Selangor'
+  if (prefix >= 50 && prefix <= 60) return 'Kuala Lumpur'
+  if (prefix >= 62 && prefix <= 64) return 'Putrajaya'
+  if (prefix >= 68 && prefix <= 68) return 'Selangor'
+  if (prefix >= 70 && prefix <= 73) return 'Negeri Sembilan'
+  if (prefix >= 75 && prefix <= 78) return 'Melaka'
+  if (prefix >= 79 && prefix <= 86) return 'Johor'
+  if (prefix >= 88 && prefix <= 91) return 'Sabah'
+  if (prefix >= 93 && prefix <= 98) return 'Sarawak'
+
+  if (digits.startsWith('00')) return 'Perlis'
+  return undefined
+}
+
+function detectCityFromAddress(data: ParsedOrder): CityLookup | undefined {
+  const combined = [data.city, data.addressLine1, data.addressLine2]
+    .filter(Boolean)
+    .join(' ')
+
+  if (!combined.trim()) return undefined
+
+  const normalizedText = normalizeCityKey(combined)
+  for (const [key, value] of Object.entries(CITY_LOOKUP)) {
+    if (normalizedText.includes(key)) {
+      return value
+    }
+  }
+
+  return undefined
+}
+
+function enrichAddress(data: ParsedOrder): ParsedOrder {
+  const next: ParsedOrder = { ...data }
+
+  const normalizedPostcode = String(next.postcode ?? '').replace(/\D/g, '').slice(0, 5)
+  if (normalizedPostcode) next.postcode = normalizedPostcode
+
+  let state = asTrimmedString(next.state)
+  const city = asTrimmedString(next.city)
+  let postcode = asTrimmedString(next.postcode)
+
+  if (!state && postcode) {
+    state = stateFromPostcode(postcode)
+  }
+
+  const cityHit = city ? CITY_LOOKUP[normalizeCityKey(city)] : undefined
+  const detectedCity = cityHit ?? detectCityFromAddress(next)
+
+  if (!city && detectedCity) {
+    next.city = detectedCity.city
+  }
+
+  if (!state && detectedCity) {
+    state = detectedCity.state
+  }
+
+  if (!postcode && detectedCity) {
+    postcode = detectedCity.postcode
+  }
+
+  if (state) next.state = state
+  if (postcode) next.postcode = postcode
+
+  return next
+}
+
 export async function POST(req: NextRequest) {
   try {
     const key = process.env.OPENAI_KEY || process.env.OPENAI_API_KEY
@@ -103,8 +260,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OpenAI API key is missing in environment.' }, { status: 500 })
     }
 
-    const body = await req.json().catch(() => ({})) as { input?: string }
+    const body = await req.json().catch(() => ({})) as {
+      input?: string
+      productCatalog?: unknown
+    }
     const input = String(body.input ?? '').trim()
+    const productCatalog = sanitizeCatalog(body.productCatalog)
 
     if (!input) {
       return NextResponse.json({ error: 'Input is required.' }, { status: 400 })
@@ -120,6 +281,9 @@ export async function POST(req: NextRequest) {
       'You are an extraction assistant for a commerce order form.',
       'Extract fields from free text into STRICT JSON only.',
       'Do not include markdown, code fences, or explanations.',
+      'If AVAILABLE_CATALOG is provided, prefer matching products/variants from that list.',
+      'When matched, output SKU, productName, and variationName exactly as listed in AVAILABLE_CATALOG.',
+      'Do not invent SKU values that are not in AVAILABLE_CATALOG.',
       'Use these keys exactly:',
       '{',
       '  "customerName": string?,',
@@ -151,6 +315,18 @@ export async function POST(req: NextRequest) {
       'Normalize payment/shipping values to the enums above when possible.',
     ].join('\n')
 
+    const messages: Array<{ role: 'system' | 'user'; content: string }> = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `ORDER_TEXT:\n${input}` },
+    ]
+
+    if (productCatalog.length > 0) {
+      messages.push({
+        role: 'user',
+        content: `AVAILABLE_CATALOG:\n${JSON.stringify(productCatalog)}`,
+      })
+    }
+
     const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -161,10 +337,7 @@ export async function POST(req: NextRequest) {
         model,
         temperature: 0.1,
         response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: input },
-        ],
+        messages,
       }),
     })
 
@@ -184,7 +357,7 @@ export async function POST(req: NextRequest) {
     }
 
     const parsed = JSON.parse(extractJsonObject(rawContent))
-    const data = sanitizeOrder(parsed)
+    const data = enrichAddress(sanitizeOrder(parsed))
 
     return NextResponse.json({ data })
   } catch (err) {

@@ -218,6 +218,7 @@ export const customers = {
     return request<{ items: unknown[]; meta: { page: number; totalPages: number; total: number } }>(`/customer${q}`)
   },
   get: (id: string) => request<unknown>(`/customer/${id}`),
+  update: (id: string, data: unknown) => request<unknown>(`/customer/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   orders: (id: string, params?: Record<string, string | number>) => {
     const q = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
     return request<{ items: unknown[]; meta: { total: number; limit: number } }>(`/customer/${id}/orders${q}`)

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { CustomerOrdersQueryDto, ListCustomerQueryDto } from './dto/customer.dto'
+import { CustomerOrdersQueryDto, ListCustomerQueryDto, UpdateCustomerDto } from './dto/customer.dto'
 
 @Injectable()
 export class CustomerService {
@@ -73,5 +73,33 @@ export class CustomerService {
     ])
 
     return { items, meta: { total, limit } }
+  }
+
+  async update(
+    tenantId: string,
+    id: string,
+    dto: UpdateCustomerDto,
+  ): Promise<Record<string, unknown> | null> {
+    const customer = await this.prisma.customer.findFirst({ where: { id, tenantId } })
+    if (!customer) return null
+
+    const data: Record<string, unknown> = {}
+
+    if (dto.name !== undefined) data.name = dto.name.trim()
+    if (dto.phone !== undefined) data.phone = dto.phone.trim()
+    if (dto.email !== undefined) {
+      const trimmed = dto.email.trim()
+      data.email = trimmed || null
+    }
+    if (dto.address !== undefined) data.address = dto.address
+
+    if (Object.keys(data).length === 0) {
+      return customer as unknown as Record<string, unknown>
+    }
+
+    return this.prisma.customer.update({
+      where: { id },
+      data,
+    }) as unknown as Record<string, unknown>
   }
 }

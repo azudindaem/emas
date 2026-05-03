@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common'
@@ -16,7 +18,7 @@ import { RbacGuard } from '../../common/guards/rbac.guard'
 import { OwnerResolverService } from '../../common/services/owner-resolver.service'
 import type { TenantContext } from '@emas/tenancy'
 import { CustomerService } from './customer.service'
-import { CustomerOrdersQueryDto, ListCustomerQueryDto } from './dto/customer.dto'
+import { CustomerOrdersQueryDto, ListCustomerQueryDto, UpdateCustomerDto } from './dto/customer.dto'
 
 @ApiTags('customer')
 @ApiBearerAuth()
@@ -61,5 +63,18 @@ export class CustomerController {
   ) {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
     return this.customerService.listOrders(tenant.id, ownerId, id, query)
+  }
+
+  @Patch(':id')
+  @UseGuards(RbacGuard)
+  @RequirePermission('order.write')
+  async update(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomerDto,
+  ) {
+    const updated = await this.customerService.update(tenant.id, id, dto)
+    if (!updated) throw new NotFoundException('Customer not found')
+    return updated
   }
 }

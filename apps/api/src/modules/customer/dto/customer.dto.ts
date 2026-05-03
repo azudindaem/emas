@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { IsEmail, IsInt, IsObject, IsOptional, IsString, Min, ValidateIf } from 'class-validator'
 
 export class ListCustomerQueryDto {
   @IsOptional()
@@ -25,4 +25,23 @@ export class CustomerOrdersQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 20
+}
+
+export class UpdateCustomerDto {
+  @IsOptional()
+  @IsString()
+  name?: string
+
+  @IsOptional()
+  @IsString()
+  phone?: string
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== '' && value !== null && value !== undefined)
+  @IsEmail()
+  email?: string
+
+  @IsOptional()
+  @IsObject()
+  address?: Record<string, unknown>
 }
