@@ -7,5 +7,6 @@ import { OwnerResolverService } from '../../common/services/owner-resolver.servi
 @Module({
   controllers: [InventoryController],
   providers: [InventoryService, RbacGuard, OwnerResolverService],
+  exports: [InventoryService],
 })
 export class InventoryModule {}

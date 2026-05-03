@@ -591,6 +591,7 @@ enum OrderStatus {
   PENDING
   CONFIRMED
   PROCESSING
+  READY_TO_SHIP
   SHIPPED
   DELIVERED
   CANCELLED
@@ -612,6 +613,7 @@ enum ShipmentStatus {
   DELIVERED
   FAILED
   RETURNED
+  CANCELLED
 }
 
 enum InvoiceType {

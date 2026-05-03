@@ -34,11 +34,11 @@ interface Order {
   createdAt: string
 }
 
-const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']
+const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']
 const PAYMENT_STATUSES = ['UNPAID', 'PARTIAL', 'PAID', 'REFUNDED']
 
 const statusColor: Record<string, 'yellow' | 'blue' | 'green' | 'red' | 'gray' | 'purple'> = {
-  PENDING: 'yellow', CONFIRMED: 'blue', PROCESSING: 'purple', READY: 'green',
+  PENDING: 'yellow', CONFIRMED: 'blue', PROCESSING: 'purple', READY_TO_SHIP: 'green',
   SHIPPED: 'blue', DELIVERED: 'green', CANCELLED: 'red', REFUNDED: 'gray',
 }
 const paymentColor: Record<string, 'gray' | 'green' | 'red' | 'yellow'> = {
@@ -47,6 +47,10 @@ const paymentColor: Record<string, 'gray' | 'green' | 'red' | 'yellow'> = {
 
 export default function OrdersPage() {
   const { t } = useLocale()
+  const getOrderStatusLabel = (status: string) =>
+    t.orders.statusLabels?.[status as keyof typeof t.orders.statusLabels] ?? status
+  const getPaymentStatusLabel = (status: string) =>
+    t.orders.paymentStatusLabels?.[status as keyof typeof t.orders.paymentStatusLabels] ?? status
   const [items, setItems] = useState<Order[]>([])
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 })
   const [page, setPage] = useState(1)
@@ -126,7 +130,7 @@ export default function OrdersPage() {
         <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="">{t.orders.allStatus}</option>
-          {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          {ORDER_STATUSES.map(s => <option key={s} value={s}>{getOrderStatusLabel(s)}</option>)}
         </select>
       </div>
 
@@ -154,8 +158,8 @@ export default function OrdersPage() {
                         <p className="text-xs text-gray-400">{o.customerPhone}</p>
                       </td>
                       <td className="px-4 py-3 font-semibold">RM {Number(o.total).toFixed(2)}</td>
-                      <td className="px-4 py-3"><Badge label={o.status} color={statusColor[o.status] ?? 'gray'} /></td>
-                      <td className="px-4 py-3"><Badge label={o.paymentStatus} color={paymentColor[o.paymentStatus] ?? 'gray'} /></td>
+                      <td className="px-4 py-3"><Badge label={getOrderStatusLabel(o.status)} color={statusColor[o.status] ?? 'gray'} /></td>
+                      <td className="px-4 py-3"><Badge label={getPaymentStatusLabel(o.paymentStatus)} color={paymentColor[o.paymentStatus] ?? 'gray'} /></td>
                       <td className="px-4 py-3 text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString('ms-MY')}</td>
                       <td className="px-4 py-3"><Eye size={15} className="text-gray-400" /></td>
                     </tr>
@@ -186,7 +190,7 @@ export default function OrdersPage() {
                   <div className="relative flex-1">
                     <select value={newStatus} onChange={e => setNewStatus(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm appearance-none pr-8">
-                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{getOrderStatusLabel(s)}</option>)}
                     </select>
                     <ChevronDown size={14} className="absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
                   </div>
@@ -202,7 +206,7 @@ export default function OrdersPage() {
                   <div className="relative flex-1">
                     <select value={newPayment} onChange={e => setNewPayment(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm appearance-none pr-8">
-                      {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{getPaymentStatusLabel(s)}</option>)}
                     </select>
                     <ChevronDown size={14} className="absolute right-2 top-2.5 text-gray-400 pointer-events-none" />
                   </div>
@@ -232,7 +236,7 @@ export default function OrdersPage() {
 
             {/* Totals */}
             <div className="px-5 py-4 space-y-1.5 text-sm">
-              <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>RM {Number(selected.subtotal).toFixed(2)}</span></div>
+              <div className="flex justify-between text-gray-600"><span>{t.orders.subtotal}</span><span>RM {Number(selected.subtotal).toFixed(2)}</span></div>
               <div className="flex justify-between text-gray-600"><span>{t.orders.shippingFee}</span><span>RM {Number(selected.shippingFee).toFixed(2)}</span></div>
               {Number(selected.discount) > 0 && (
                 <div className="flex justify-between text-red-600"><span>{t.orders.discount}</span><span>-RM {Number(selected.discount).toFixed(2)}</span></div>

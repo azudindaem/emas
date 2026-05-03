@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common'
-import type { Prisma } from '@emas/db'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { OrderStatus, Prisma, StockMovementType } from '@emas/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { WebhookDispatcherService } from '../webhook/webhook-dispatcher.service'
+import { ShippingService } from '../shipping/shipping.service'
 import {
   CreateOrderDto,
   ListOrderQueryDto,
@@ -15,6 +16,7 @@ export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly webhookDispatcher: WebhookDispatcherService,
+    private readonly shippingService: ShippingService,
   ) {}
 
   async list(tenantId: string, ownerId: string, query: ListOrderQueryDto): Promise<Record<string, unknown>> {
@@ -61,10 +63,34 @@ export class OrderService {
   }
 
   async findOne(tenantId: string, ownerId: string, id: string): Promise<Record<string, unknown> | null> {
-    return this.prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: { id, tenantId, ownerId },
       include: { items: true, shipment: true, payments: true, invoices: true },
-    }) as Promise<Record<string, unknown> | null>
+    })
+
+    if (!order) return null
+
+    let courier: Record<string, unknown> | null = null
+    if (order.shipment?.courierId) {
+      const account = await this.prisma.courierAccount.findFirst({
+        where: { id: order.shipment.courierId, tenantId },
+        select: { id: true, label: true, provider: true },
+      })
+      if (account) {
+        courier = account as unknown as Record<string, unknown>
+      }
+    }
+
+    return {
+      ...(order as unknown as Record<string, unknown>),
+      shipment: order.shipment
+        ? {
+            ...(order.shipment as unknown as Record<string, unknown>),
+            trackingNo: order.shipment.awbNo ?? null,
+            courier,
+          }
+        : null,
+    }
   }
 
   async create(
@@ -131,7 +157,7 @@ export class OrderService {
         }
       }
 
-      return tx.order.create({
+      const createdOrder = await tx.order.create({
         data: {
           tenantId,
           ownerId,
@@ -154,6 +180,48 @@ export class OrderService {
         },
         include: { items: true },
       })
+
+      const warehouseId = await this.resolveDefaultWarehouseId(tx, tenantId, ownerId)
+
+      for (const item of preparedItems) {
+        const stock = await tx.productStock.upsert({
+          where: {
+            variationId_warehouseId: {
+              variationId: item.variationId,
+              warehouseId,
+            },
+          },
+          update: {},
+          create: {
+            variationId: item.variationId,
+            warehouseId,
+            quantity: 0,
+            reserved: 0,
+          },
+        })
+
+        if (stock.quantity < item.quantity) {
+          throw new BadRequestException(`Insufficient stock for SKU ${item.sku}`)
+        }
+
+        await tx.productStock.update({
+          where: { id: stock.id },
+          data: { quantity: stock.quantity - item.quantity },
+        })
+
+        await tx.stockMovement.create({
+          data: {
+            variationId: item.variationId,
+            quantity: item.quantity,
+            type: StockMovementType.OUT,
+            referenceId: createdOrder.id,
+            note: `Order created (${createdOrder.orderNo})`,
+            createdBy: createdById,
+          },
+        })
+      }
+
+      return createdOrder
     })
 
     const result = order as unknown as Record<string, unknown>
@@ -174,13 +242,58 @@ export class OrderService {
     const existing = await this.prisma.order.findFirst({ where: { id, tenantId, ownerId } })
     if (!existing) return null
 
-    const updated = await this.prisma.order.update({
-      where: { id },
-      data: { status: dto.status },
-      include: { items: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.order.update({
+        where: { id },
+        data: { status: dto.status },
+        include: { items: true },
+      })
+
+      if (dto.status === OrderStatusDto.CANCELLED && existing.status !== OrderStatus.CANCELLED) {
+        const warehouseId = await this.resolveDefaultWarehouseId(tx, tenantId, ownerId)
+        for (const item of next.items) {
+          const stock = await tx.productStock.upsert({
+            where: {
+              variationId_warehouseId: {
+                variationId: item.variationId,
+                warehouseId,
+              },
+            },
+            update: {},
+            create: {
+              variationId: item.variationId,
+              warehouseId,
+              quantity: 0,
+              reserved: 0,
+            },
+          })
+
+          await tx.productStock.update({
+            where: { id: stock.id },
+            data: { quantity: stock.quantity + item.quantity },
+          })
+
+          await tx.stockMovement.create({
+            data: {
+              variationId: item.variationId,
+              quantity: item.quantity,
+              type: StockMovementType.IN,
+              referenceId: next.id,
+              note: `Order cancelled (${next.orderNo})`,
+            },
+          })
+        }
+      }
+
+      return next
     })
 
     const result = updated as unknown as Record<string, unknown>
+
+    if (dto.status === OrderStatusDto.READY_TO_SHIP) {
+      void this.shippingService.autoGenerateAwbForOrder(tenantId, id).catch(() => undefined)
+    }
+
     this.webhookDispatcher.dispatch(tenantId, 'order.status_changed', {
       ...this.serializeOrder(result),
       previousStatus: existing.status,
@@ -233,5 +346,28 @@ export class OrderService {
 
   private asMoney(value: number): string {
     return Number(value).toFixed(2)
+  }
+
+  private async resolveDefaultWarehouseId(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    ownerId: string,
+  ): Promise<string> {
+    const existing = await tx.warehouse.findFirst({
+      where: { tenantId, ownerId, isDefault: true },
+      select: { id: true },
+    })
+    if (existing) return existing.id
+
+    const created = await tx.warehouse.create({
+      data: {
+        tenantId,
+        ownerId,
+        name: 'Default Warehouse',
+        isDefault: true,
+      },
+      select: { id: true },
+    })
+    return created.id
   }
 }

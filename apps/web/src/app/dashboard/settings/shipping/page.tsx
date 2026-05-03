@@ -92,7 +92,7 @@ const RATE_TYPES = ['FLAT', 'WEIGHT_TIER', 'FREE_SHIPPING', 'COD_SURCHARGE', 'RE
 interface CredentialField {
   key: string
   labelKey: string // key in shipping labels
-  type: 'text' | 'password' | 'select'
+  type: 'text' | 'password' | 'select' | 'checkbox' | 'section'
   placeholder?: string
   required: boolean
   options?: { value: string; labelKey: string }[]
@@ -141,16 +141,48 @@ const COURIER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
     { key: 'password', labelKey: 'fieldPassword', type: 'password', required: true },
   ],
   OTHERS: [
-    { key: 'api_key', labelKey: 'fieldApiKey', type: 'text', required: false },
-    { key: 'api_secret', labelKey: 'fieldApiSecret', type: 'password', required: false },
+    { key: 'token', labelKey: 'fieldToken', type: 'password', required: true },
+    { key: 'merchantId', labelKey: 'fieldMerchantId', type: 'text', required: true, placeholder: 'qTP8VvoJS9' },
+    {
+      key: 'environment', labelKey: 'envLabel', type: 'select', required: false,
+      options: [
+        { value: 'sandbox', labelKey: 'envSandbox' },
+        { value: 'production', labelKey: 'envProduction' },
+      ],
+    },
+    { key: 'serviceProvider', labelKey: 'fieldServiceProvider', type: 'text', required: false, placeholder: 'jnt / dhl / ninjavan' },
+    { key: 'isDropoff', labelKey: 'fieldDropoff', type: 'checkbox', required: false },
+    { key: 'isNotify', labelKey: 'fieldNotify', type: 'text', required: false, placeholder: 'SMS / WhatsApp / Email' },
+    { key: 'isReschedule', labelKey: 'fieldReschedule', type: 'text', required: false, placeholder: 'WhatsApp' },
+    { key: '__pickup__', labelKey: 'fieldPickupSection', type: 'section', required: false },
+    { key: 'pickupAddress.fullName', labelKey: 'fieldFullName', type: 'text', required: true },
+    { key: 'pickupAddress.phone', labelKey: 'fieldPhone', type: 'text', required: true, placeholder: '0123456789' },
+    { key: 'pickupAddress.email', labelKey: 'fieldEmail', type: 'text', required: false },
+    { key: 'pickupAddress.countryCode', labelKey: 'fieldCountryCode', type: 'text', required: false, placeholder: '+60' },
+    { key: 'pickupAddress.line1', labelKey: 'fieldLine1', type: 'text', required: true },
+    { key: 'pickupAddress.line2', labelKey: 'fieldLine2', type: 'text', required: false },
+    { key: 'pickupAddress.city', labelKey: 'fieldCity', type: 'text', required: true },
+    { key: 'pickupAddress.postcode', labelKey: 'fieldPostcode', type: 'text', required: true, placeholder: '43000' },
+    { key: 'pickupAddress.state', labelKey: 'fieldState', type: 'text', required: true },
+    { key: 'pickupAddress.country', labelKey: 'fieldCountry', type: 'text', required: false, placeholder: 'Malaysia' },
   ],
 }
 
 function buildCredentialsFromFields(fields: CredentialField[], values: Record<string, string>): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const f of fields) {
-    const val = values[f.key] ?? ''
-    if (val !== '') result[f.key] = val
+    if (f.type === 'section') continue
+    const raw = values[f.key] ?? ''
+    const val: unknown = f.type === 'checkbox' ? raw === 'true' : raw
+    if (val === '' || val === false) continue
+    const parts = f.key.split('.')
+    if (parts.length === 2) {
+      const [parent, child] = parts as [string, string]
+      if (!result[parent]) result[parent] = {}
+      ;(result[parent] as Record<string, unknown>)[child] = val
+    } else {
+      result[f.key] = val
+    }
   }
   return result
 }
@@ -158,7 +190,17 @@ function buildCredentialsFromFields(fields: CredentialField[], values: Record<st
 function extractFieldValues(fields: CredentialField[], credentials: Record<string, unknown>): Record<string, string> {
   const result: Record<string, string> = {}
   for (const f of fields) {
-    result[f.key] = credentials[f.key] != null ? String(credentials[f.key]) : ''
+    if (f.type === 'section') continue
+    const parts = f.key.split('.')
+    if (parts.length === 2) {
+      const [parent, child] = parts as [string, string]
+      const nested = credentials[parent] as Record<string, unknown> | undefined
+      result[f.key] = nested?.[child] != null ? String(nested[child]) : ''
+    } else if (f.type === 'checkbox') {
+      result[f.key] = credentials[f.key] ? 'true' : 'false'
+    } else {
+      result[f.key] = credentials[f.key] != null ? String(credentials[f.key]) : ''
+    }
   }
   return result
 }
@@ -212,84 +254,110 @@ function CourierModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-        <div className="px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 border-b border-gray-100 shrink-0">
           <h3 className="font-semibold text-gray-900">{courier ? labels.editCourier : labels.addCourier}</h3>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.courierProvider}</label>
-            <select
-              value={provider}
-              onChange={(e) => handleProviderChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-            >
-              {COURIER_PROVIDERS.map((p) => (
-                <option key={p} value={p}>{PROVIDER_LABELS[p] ?? p}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.courierLabel}</label>
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="e.g. NinjaVan Main Account"
-            />
-          </div>
-          {currentFields.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">{labels.credentialsSection}</p>
-              {currentFields.map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    {(labels as Record<string, string>)[field.labelKey] ?? field.labelKey}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {field.type === 'select' ? (
-                    <select
-                      value={credentialFields[field.key] ?? ''}
-                      onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    >
-                      {field.options?.map(opt => (
-                        <option key={opt.value} value={opt.value}>
-                          {(labels as Record<string, string>)[opt.labelKey] ?? opt.labelKey}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type={field.type}
-                      value={credentialFields[field.key] ?? ''}
-                      onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      required={field.required}
-                      placeholder={field.placeholder}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    />
-                  )}
-                  {field.key === 'environment' && credentialFields[field.key] === 'sandbox' && (
-                    <p className="text-xs text-amber-600 mt-1">{labels.sandboxHint}</p>
-                  )}
-                </div>
-              ))}
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.courierProvider}</label>
+              <select
+                value={provider}
+                onChange={(e) => handleProviderChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                {COURIER_PROVIDERS.map((p) => (
+                  <option key={p} value={p}>{PROVIDER_LABELS[p] ?? p}</option>
+                ))}
+              </select>
             </div>
-          )}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="w-4 h-4 accent-amber-500"
-            />
-            <label htmlFor="isActive" className="text-sm text-gray-700">{labels.courierActive}</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.courierLabel}</label>
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                placeholder="e.g. NinjaVan Main Account"
+              />
+            </div>
+            {currentFields.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">{labels.credentialsSection}</p>
+                {currentFields.map((field) => {
+                  const fieldLabel = (labels as Record<string, string>)[field.labelKey] ?? field.labelKey
+                  if (field.type === 'section') {
+                    return (
+                      <div key={field.key} className="pt-2 pb-1 border-t border-gray-100">
+                        <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">{fieldLabel}</p>
+                      </div>
+                    )
+                  }
+                  if (field.type === 'checkbox') {
+                    return (
+                      <div key={field.key} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`cred_${field.key}`}
+                          checked={credentialFields[field.key] === 'true'}
+                          onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.checked ? 'true' : 'false' }))}
+                          className="w-4 h-4 accent-amber-500"
+                        />
+                        <label htmlFor={`cred_${field.key}`} className="text-sm text-gray-700">{fieldLabel}</label>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={field.key}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {fieldLabel}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      {field.type === 'select' ? (
+                        <select
+                          value={credentialFields[field.key] ?? ''}
+                          onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        >
+                          {field.options?.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                              {(labels as Record<string, string>)[opt.labelKey] ?? opt.labelKey}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={credentialFields[field.key] ?? ''}
+                          onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          required={field.required}
+                          placeholder={field.placeholder}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        />
+                      )}
+                      {field.key === 'environment' && credentialFields[field.key] === 'sandbox' && (
+                        <p className="text-xs text-amber-600 mt-1">{labels.sandboxHint}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="w-4 h-4 accent-amber-500"
+              />
+              <label htmlFor="isActive" className="text-sm text-gray-700">{labels.courierActive}</label>
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
             <button
               type="submit"
               disabled={saving}

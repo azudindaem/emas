@@ -4,9 +4,11 @@ import { OrderService } from './order.service'
 import { RbacGuard } from '../../common/guards/rbac.guard'
 import { OwnerResolverService } from '../../common/services/owner-resolver.service'
 import { WebhookModule } from '../webhook/webhook.module'
+import { ShippingModule } from '../shipping/shipping.module'
+import { InventoryModule } from '../inventory/inventory.module'
 
 @Module({
-  imports: [WebhookModule],
+  imports: [WebhookModule, ShippingModule, InventoryModule],
   controllers: [OrderController],
   providers: [OrderService, RbacGuard, OwnerResolverService],
 })

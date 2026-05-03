@@ -138,6 +138,8 @@ export const shipping = {
   },
   updateShipmentStatus: (id: string, status: string) =>
     request<unknown>(`/shipping/shipments/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  cancelAwb: (id: string) =>
+    request<unknown>(`/shipping/shipments/${id}/cancel`, { method: 'POST' }),
   listCouriers: () => request<unknown[]>('/shipping/couriers'),
   createCourier: (data: unknown) =>
     request<unknown>('/shipping/couriers', { method: 'POST', body: JSON.stringify(data) }),

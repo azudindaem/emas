@@ -70,6 +70,21 @@ export class GenerateAwbDto {
   @IsOptional()
   @IsString()
   notes?: string
+
+  @ApiPropertyOptional({ description: 'COD amount for supported couriers' })
+  @IsOptional()
+  @IsNumber()
+  cod?: number
+
+  @ApiPropertyOptional({ description: 'Insurance amount for supported couriers' })
+  @IsOptional()
+  @IsNumber()
+  insurance?: number
+
+  @ApiPropertyOptional({ description: 'External reference for courier order' })
+  @IsOptional()
+  @IsString()
+  reference?: string
 }
 
 export class BulkGenerateAwbDto {
@@ -133,6 +148,26 @@ export class GetRateDto {
   @ApiProperty({ description: 'Weight in kg' })
   @IsNumber()
   weightKg: number
+
+  @ApiPropertyOptional({ description: 'Origin country', example: 'Malaysia' })
+  @IsOptional()
+  @IsString()
+  fromCountry?: string
+
+  @ApiPropertyOptional({ description: 'Destination country', example: 'Malaysia' })
+  @IsOptional()
+  @IsString()
+  toCountry?: string
+
+  @ApiPropertyOptional({ description: 'COD amount' })
+  @IsOptional()
+  @IsNumber()
+  cod?: number
+
+  @ApiPropertyOptional({ description: 'Insurance amount' })
+  @IsOptional()
+  @IsNumber()
+  insurance?: number
 
   @ApiPropertyOptional({ enum: CourierProvider, description: 'Filter by specific courier' })
   @IsOptional()

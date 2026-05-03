@@ -143,6 +143,14 @@ export class ShippingController {
     return this.shippingService.updateShipmentStatus(tenant.id, id, dto)
   }
 
+  @Post('shipments/:id/cancel')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.write')
+  @ApiOperation({ summary: 'Cancel AWB and mark shipment as cancelled' })
+  cancelAwb(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
+    return this.shippingService.cancelAwb(tenant.id, id)
+  }
+
   @Post('shipments/:id/label')
   @UseGuards(RbacGuard)
   @RequirePermission('shipping.write')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -24,7 +24,7 @@ import {
   User,
 } from 'lucide-react'
 import { parsePhoneNumber } from 'libphonenumber-js'
-import { orders as ordersApi, products as productsApi } from '@/lib/api'
+import { orders as ordersApi, products as productsApi, shipping as shippingApi } from '@/lib/api'
 import { useLocale } from '@/lib/locale'
 
 interface OrderSearchResult {
@@ -245,7 +245,32 @@ export default function CreateOrderPage() {
   const [privateNote, setPrivateNote] = useState('')
   const [awbNote, setAwbNote] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'BANK_TRANSFER' | 'FOC' | ''>('')
-  const [shippingMethod, setShippingMethod] = useState<'NINJA_VAN' | 'SELF_PICKUP' | ''>('')
+  const [shippingMethod, setShippingMethod] = useState<string>('')
+  const [courierOptions, setCourierOptions] = useState<{ id: string; label: string }[]>([])
+  const [selfPickupEnabled, setSelfPickupEnabled] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      shippingApi.getDefaults(),
+      shippingApi.listCouriers(),
+    ]).then(([d, couriersRaw]) => {
+      const defaults = d as { selfPickupEnabled?: boolean; defaultCourierId?: string | null }
+      const couriers = (couriersRaw as { id: string; label: string; isActive: boolean }[])
+        .filter((c) => c.isActive)
+      setCourierOptions(couriers.map((c) => ({ id: c.id, label: c.label })))
+      setSelfPickupEnabled(defaults?.selfPickupEnabled ?? false)
+      // Pre-select: defaultCourierId → its id, else first courier, else SELF_PICKUP
+      if (defaults?.defaultCourierId) {
+        setShippingMethod(defaults.defaultCourierId)
+      } else if (couriers.length > 0) {
+        setShippingMethod(couriers[0].id)
+      } else if (defaults?.selfPickupEnabled) {
+        setShippingMethod('SELF_PICKUP')
+      }
+    }).catch(() => {
+      // leave empty — user selects manually
+    })
+  }, [])
 
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState('')
@@ -724,7 +749,11 @@ export default function CreateOrderPage() {
           first.data.private_note ? `[${c.noteTags.private}] ${first.data.private_note}` : '',
           first.data.awb_note ? `[${c.noteTags.awb}] ${first.data.awb_note}` : '',
           paymentMethod ? `[${c.noteTags.payment}] ${paymentMethod}` : '',
-          shippingMethod ? `[${c.noteTags.shipping}] ${shippingMethod}` : '',
+          shippingMethod ? `[${c.noteTags.shipping}] ${
+            shippingMethod === 'SELF_PICKUP'
+              ? 'SELF_PICKUP'
+              : (courierOptions.find((o) => o.id === shippingMethod)?.label ?? shippingMethod)
+          }` : '',
           `[BULK_REF] ${orderRef}`,
         ].filter(Boolean).join('\n')
 
@@ -893,12 +922,15 @@ export default function CreateOrderPage() {
     if (!validate()) return
     setSaving(true)
     setError('')
+    const shippingLabel = shippingMethod === 'SELF_PICKUP'
+      ? 'SELF_PICKUP'
+      : (courierOptions.find((o) => o.id === shippingMethod)?.label ?? shippingMethod)
     try {
       const mergedNotes = [
         privateNoteOn && privateNote ? `[${c.noteTags.private}] ${privateNote}` : '',
         awbNoteOn && awbNote ? `[${c.noteTags.awb}] ${awbNote}` : '',
         `[${c.noteTags.payment}] ${paymentMethod}`,
-        `[${c.noteTags.shipping}] ${shippingMethod}`,
+        `[${c.noteTags.shipping}] ${shippingLabel}`,
       ].filter(Boolean).join('\n')
 
       await ordersApi.create({
@@ -1342,8 +1374,28 @@ export default function CreateOrderPage() {
               <div className={CARD}>
                 <h3 className="flex items-center gap-2 text-sm font-medium mb-3 text-slate-900"><Truck className="w-4 h-4" />{c.shippingMethod}</h3>
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => setShippingMethod('NINJA_VAN')} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${shippingMethod === 'NINJA_VAN' ? 'bg-primary text-white border-primary' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}><Truck className="w-4 h-4" /><span>{c.ninjaVan}</span></button>
-                  <button type="button" onClick={() => setShippingMethod('SELF_PICKUP')} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${shippingMethod === 'SELF_PICKUP' ? 'bg-primary text-white border-primary' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}><MapPin className="w-4 h-4" /><span>{c.selfPickup}</span></button>
+                  {courierOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setShippingMethod(opt.id)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${shippingMethod === opt.id ? 'bg-primary text-white border-primary' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                    >
+                      <Truck className="w-4 h-4" /><span>{opt.label}</span>
+                    </button>
+                  ))}
+                  {selfPickupEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setShippingMethod('SELF_PICKUP')}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${shippingMethod === 'SELF_PICKUP' ? 'bg-primary text-white border-primary' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                    >
+                      <MapPin className="w-4 h-4" /><span>{c.selfPickup}</span>
+                    </button>
+                  )}
+                  {courierOptions.length === 0 && !selfPickupEnabled && (
+                    <p className="text-xs text-amber-600">{c.selectShippingHint}</p>
+                  )}
                 </div>
                 <p className="text-xs mt-1 text-slate-500">{c.selectShippingHint}</p>
               </div>
