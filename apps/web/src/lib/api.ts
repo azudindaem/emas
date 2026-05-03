@@ -253,6 +253,19 @@ export const brands = {
 
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
+// ─── Webhooks ─────────────────────────────────────────────────────────────────
+
+export const webhooks = {
+  list: () => request<unknown[]>('/webhook'),
+  create: (data: unknown) => request<unknown>('/webhook', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: unknown) => request<unknown>(`/webhook/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => request<unknown>(`/webhook/${id}`, { method: 'DELETE' }),
+  toggle: (id: string, _isActive?: boolean) => request<unknown>(`/webhook/${id}/toggle`, { method: 'POST' }),
+  test: (id: string, event: string) => request<{ success: boolean; status?: number; error?: string }>(`/webhook/${id}/test`, { method: 'POST', body: JSON.stringify({ event }) }),
+}
+
+// ─── Roles ────────────────────────────────────────────────────────────────────
+
 export const roles = {
   list: () => request<unknown[]>('/role'),
   create: (data: unknown) => request<unknown>('/role', { method: 'POST', body: JSON.stringify(data) }),

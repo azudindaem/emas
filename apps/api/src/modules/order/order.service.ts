@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@emas/db'
 import { PrismaService } from '../prisma/prisma.service'
+import { WebhookDispatcherService } from '../webhook/webhook-dispatcher.service'
 import {
   CreateOrderDto,
   ListOrderQueryDto,
   UpdateOrderStatusDto,
   UpdatePaymentStatusDto,
+  OrderStatusDto,
 } from './dto/order.dto'
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhookDispatcher: WebhookDispatcherService,
+  ) {}
 
   async list(tenantId: string, ownerId: string, query: ListOrderQueryDto): Promise<Record<string, unknown>> {
     const page = query.page ?? 1
@@ -62,7 +67,12 @@ export class OrderService {
     }) as Promise<Record<string, unknown> | null>
   }
 
-  async create(tenantId: string, ownerId: string, dto: CreateOrderDto): Promise<Record<string, unknown>> {
+  async create(
+    tenantId: string,
+    ownerId: string,
+    createdById: string,
+    dto: CreateOrderDto,
+  ): Promise<Record<string, unknown>> {
     const shippingFee = this.asMoney(dto.shippingFee ?? 0)
     const discount = this.asMoney(dto.discount ?? 0)
     const customerPhone = String(dto.customerPhone ?? '').trim()
@@ -125,6 +135,7 @@ export class OrderService {
         data: {
           tenantId,
           ownerId,
+          createdById,
           orderNo: dto.orderNo ?? this.generateOrderNo(),
           brandId: dto.brandId,
           customerId,
@@ -145,7 +156,13 @@ export class OrderService {
       })
     })
 
-    return order as unknown as Record<string, unknown>
+    const result = order as unknown as Record<string, unknown>
+    this.webhookDispatcher.dispatch(tenantId, 'order.created', this.serializeOrder(result))
+    return result
+  }
+
+  private serializeOrder(order: Record<string, unknown>): Record<string, unknown> {
+    return JSON.parse(JSON.stringify(order))
   }
 
   async updateStatus(
@@ -163,7 +180,19 @@ export class OrderService {
       include: { items: true },
     })
 
-    return updated as unknown as Record<string, unknown>
+    const result = updated as unknown as Record<string, unknown>
+    this.webhookDispatcher.dispatch(tenantId, 'order.status_changed', {
+      ...this.serializeOrder(result),
+      previousStatus: existing.status,
+    })
+    if (dto.status === OrderStatusDto.DELIVERED) {
+      this.webhookDispatcher.dispatch(tenantId, 'order.completed', this.serializeOrder(result))
+    }
+    if (dto.status === OrderStatusDto.CANCELLED) {
+      this.webhookDispatcher.dispatch(tenantId, 'order.cancelled', this.serializeOrder(result))
+    }
+
+    return result
   }
 
   async updatePaymentStatus(
@@ -181,7 +210,13 @@ export class OrderService {
       include: { items: true },
     })
 
-    return updated as unknown as Record<string, unknown>
+    const result = updated as unknown as Record<string, unknown>
+    this.webhookDispatcher.dispatch(tenantId, 'order.updated', {
+      ...this.serializeOrder(result),
+      previousPaymentStatus: existing.paymentStatus,
+    })
+
+    return result
   }
 
   private generateOrderNo(): string {

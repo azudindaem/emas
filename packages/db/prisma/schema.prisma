@@ -44,6 +44,7 @@ model Tenant {
   shippingRates ShippingRate[]
   shippingDefaults ShippingDefaultSetting?
   customers    Customer[]
+  webhooks     Webhook[]
 
   @@index([slug])
 }
@@ -807,4 +808,21 @@ enum ShippingRateType {
   FREE_SHIPPING
   COD_SURCHARGE
   REMOTE_SURCHARGE
+}
+
+model Webhook {
+  id               String   @id @default(uuid())
+  tenantId         String
+  name             String
+  url              String
+  secret           String?
+  events           Json     @default("[]")
+  isActive         Boolean  @default(true)
+  lastTriggeredAt  DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }

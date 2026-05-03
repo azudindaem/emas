@@ -62,7 +62,7 @@ export class OrderController {
     @Body() dto: CreateOrderDto,
   ) {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
-    return this.orderService.create(tenant.id, ownerId, dto)
+    return this.orderService.create(tenant.id, ownerId, user.userId, dto)
   }
 
   @Patch(':id/status')

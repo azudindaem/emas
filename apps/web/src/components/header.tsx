@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
-import { Globe, Check } from 'lucide-react'
+import { Globe, Check, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useLocale, type Locale } from '@/lib/locale'
 
 const NAV_KEYS: Record<string, keyof ReturnType<typeof useLocale>['t']['nav']> = {
@@ -23,7 +23,12 @@ const NAV_KEYS: Record<string, keyof ReturnType<typeof useLocale>['t']['nav']> =
 
 const LOCALE_FLAGS: Record<Locale, string> = { ms: '🇲🇾', en: '🇬🇧' }
 
-export function Header() {
+interface HeaderProps {
+  sidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
+}
+
+export function Header({ sidebarCollapsed = false, onToggleSidebar }: HeaderProps) {
   const pathname = usePathname()
   const { t, locale, setLocale } = useLocale()
   const [open, setOpen] = useState(false)
@@ -50,7 +55,17 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between h-14 px-6 bg-white border-b border-gray-200">
-      <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+        <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
+      </div>
 
       {/* Language Switcher */}
       <div className="relative" ref={ref}>

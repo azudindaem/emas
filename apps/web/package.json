@@ -1,6 +1,6 @@
 {
   "name": "@emas/web",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
@@ -21,6 +21,7 @@
     "postcss": "^8.5.13",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^3.8.1",
     "tailwindcss": "^4.2.4",
     "xlsx": "^0.18.5"
   },

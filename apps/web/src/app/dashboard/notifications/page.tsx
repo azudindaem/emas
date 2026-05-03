@@ -1,27 +1,712 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/lib/locale'
+import { webhooks as webhooksApi } from '@/lib/api'
+import {
+  Bell,
+  Webhook,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  X,
+  Shield,
+  Globe,
+  Zap,
+} from 'lucide-react'
 
-export default function NotificationsPage() {
-  const { t } = useLocale()
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface WebhookItem {
+  id: string
+  name: string
+  url: string
+  secret?: string
+  events: string[]
+  isActive: boolean
+  lastTriggeredAt?: string | null
+  createdAt: string
+}
+
+type Tab = 'channels' | 'webhooks'
+
+// ─── Event definitions ────────────────────────────────────────────────────────
+
+const EVENT_GROUPS: Record<string, string[]> = {
+  orders: [
+    'order.created',
+    'order.updated',
+    'order.status_changed',
+    'order.completed',
+    'order.cancelled',
+  ],
+  payment: ['payment.received', 'payment.failed'],
+  shipment: ['shipment.created', 'shipment.updated', 'shipment.delivered'],
+  customer: ['customer.created'],
+}
+
+// ─── Webhook Form Modal ───────────────────────────────────────────────────────
+
+interface WebhookFormProps {
+  initial?: WebhookItem | null
+  onSave: (data: Omit<WebhookItem, 'id' | 'createdAt' | 'lastTriggeredAt'>) => Promise<void>
+  onClose: () => void
+  saving: boolean
+  t: ReturnType<typeof useLocale>['t']
+}
+
+function WebhookForm({ initial, onSave, onClose, saving, t }: WebhookFormProps) {
+  const wt = t.notifications.webhook
+  const [name, setName] = useState(initial?.name ?? '')
+  const [url, setUrl] = useState(initial?.url ?? '')
+  const [secret, setSecret] = useState(initial?.secret ?? '')
+  const [events, setEvents] = useState<string[]>(initial?.events ?? [])
+  const [isActive, setIsActive] = useState(initial?.isActive ?? true)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const toggleEvent = (event: string) => {
+    setEvents((prev) =>
+      prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event],
+    )
+  }
+
+  const toggleGroup = (group: string) => {
+    const groupEvents = EVENT_GROUPS[group]
+    const allSelected = groupEvents.every((e) => events.includes(e))
+    if (allSelected) {
+      setEvents((prev) => prev.filter((e) => !groupEvents.includes(e)))
+    } else {
+      setEvents((prev) => [...new Set([...prev, ...groupEvents])])
+    }
+  }
+
+  const validate = () => {
+    const errs: Record<string, string> = {}
+    if (!name.trim()) errs.name = wt.nameRequired
+    if (!url.trim()) {
+      errs.url = wt.urlRequired
+    } else if (!/^https?:\/\/.+/.test(url.trim())) {
+      errs.url = wt.urlInvalid
+    }
+    if (events.length === 0) errs.events = wt.noEventsSelected
+    return errs
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      return
+    }
+    await onSave({ name: name.trim(), url: url.trim(), secret: secret.trim() || undefined, events, isActive })
+  }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-800">{t.notifications.title}</h2>
-        <p className="text-sm text-gray-400">{t.notifications.subtitle}</p>
-      </div>
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-800">
-        <p className="font-semibold mb-2">{t.notifications.channelsTitle}</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          <li>Email (SMTP)</li>
-          <li>SMS (AdaSMS, SMS Niaga)</li>
-          <li>WhatsApp Rasmi (WABA)</li>
-          <li>WhatsApp Tidak Rasmi</li>
-          <li>Webhook</li>
-        </ul>
-        <p className="mt-3 text-xs">{t.notifications.configNote} <code>POST /api/v1/notification/config</code></p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-amber-100 p-1.5 text-amber-700">
+              <Webhook size={16} />
+            </div>
+            <h3 className="font-semibold text-slate-800">
+              {initial ? wt.edit : wt.add}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="max-h-[70vh] overflow-y-auto p-6 space-y-5">
+            {/* Name */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{wt.name}</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={wt.namePlaceholder}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+              />
+              {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+            </div>
+
+            {/* URL */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{wt.url}</label>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
+                <Globe size={14} className="shrink-0 text-slate-400" />
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={wt.urlPlaceholder}
+                  className="w-full bg-transparent text-sm text-slate-800 outline-none"
+                />
+              </div>
+              {errors.url && <p className="mt-1 text-xs text-red-500">{errors.url}</p>}
+            </div>
+
+            {/* Secret */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{wt.secret}</label>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
+                <Shield size={14} className="shrink-0 text-slate-400" />
+                <input
+                  type="password"
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  placeholder={wt.secretPlaceholder}
+                  className="w-full bg-transparent text-sm text-slate-800 outline-none"
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-400">{wt.secretHint}</p>
+            </div>
+
+            {/* Events */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-600">{wt.events}</label>
+              <p className="mb-3 text-xs text-slate-400">{wt.eventsHint}</p>
+              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                {Object.entries(EVENT_GROUPS).map(([group, groupEvents]) => {
+                  const allSelected = groupEvents.every((e) => events.includes(e))
+                  const someSelected = groupEvents.some((e) => events.includes(e))
+                  return (
+                    <div key={group}>
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group)}
+                        className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-amber-700"
+                      >
+                        <div
+                          className={`h-3.5 w-3.5 rounded border transition-colors ${
+                            allSelected
+                              ? 'border-amber-500 bg-amber-500'
+                              : someSelected
+                                ? 'border-amber-400 bg-amber-200'
+                                : 'border-slate-300 bg-white'
+                          }`}
+                        />
+                        {wt.eventGroups[group as keyof typeof wt.eventGroups]}
+                      </button>
+                      <div className="grid grid-cols-2 gap-1.5 pl-5">
+                        {groupEvents.map((event) => (
+                          <label
+                            key={event}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={events.includes(event)}
+                              onChange={() => toggleEvent(event)}
+                              className="accent-amber-600"
+                            />
+                            <span className="text-xs text-slate-700">
+                              {wt.eventLabels[event as keyof typeof wt.eventLabels]}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {errors.events && <p className="mt-1 text-xs text-red-500">{errors.events}</p>}
+            </div>
+
+            {/* Active toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-sm font-medium text-slate-700">{wt.active}</p>
+              <button
+                type="button"
+                onClick={() => setIsActive(!isActive)}
+                className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${
+                  isActive ? 'bg-amber-500' : 'bg-slate-200'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                    isActive ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {t.common.save}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
+
+// ─── Test Event Modal ─────────────────────────────────────────────────────────
+
+interface TestModalProps {
+  item: WebhookItem
+  onTest: (event: string) => Promise<void>
+  onClose: () => void
+  testing: boolean
+  t: ReturnType<typeof useLocale>['t']
+}
+
+function TestModal({ item, onTest, onClose, testing, t }: TestModalProps) {
+  const wt = t.notifications.webhook
+  const [selected, setSelected] = useState<string>(item.events[0] ?? '')
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-lg bg-indigo-100 p-1.5 text-indigo-700">
+              <Zap size={16} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800">{wt.test}</h3>
+              <p className="text-xs text-slate-400">{item.name}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-slate-600">{wt.testPickEvent}</p>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {item.events.map((event) => (
+              <label
+                key={event}
+                className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                  selected === event
+                    ? 'border-indigo-300 bg-indigo-50'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="test-event"
+                  value={event}
+                  checked={selected === event}
+                  onChange={() => setSelected(event)}
+                  className="accent-indigo-600"
+                />
+                <span className="text-sm text-slate-700">{wt.eventLabels[event as keyof typeof wt.eventLabels] ?? event}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {t.common.cancel}
+          </button>
+          <button
+            type="button"
+            onClick={() => onTest(selected)}
+            disabled={!selected || testing}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {testing && <Loader2 size={14} className="animate-spin" />}
+            {testing ? wt.testing : wt.testSend}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function NotificationsPage() {
+  const { t } = useLocale()
+  const wt = t.notifications.webhook
+  const [activeTab, setActiveTab] = useState<Tab>('channels')
+  const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<WebhookItem | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [testingItem, setTestingItem] = useState<WebhookItem | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const loadWebhooks = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await webhooksApi.list()
+      setWebhookList((data as WebhookItem[]) ?? [])
+    } catch {
+      setWebhookList([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'webhooks') loadWebhooks()
+  }, [activeTab, loadWebhooks])
+
+  const handleSave = async (data: Omit<WebhookItem, 'id' | 'createdAt' | 'lastTriggeredAt'>) => {
+    setSaving(true)
+    try {
+      if (editing) {
+        await webhooksApi.update(editing.id, data)
+      } else {
+        await webhooksApi.create(data)
+      }
+      showToast(wt.saveSuccess)
+      setShowForm(false)
+      setEditing(null)
+      loadWebhooks()
+    } catch (e) {
+      showToast((e as Error).message ?? t.common.error, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    try {
+      await webhooksApi.delete(id)
+      showToast(wt.deleteSuccess)
+      setWebhookList((prev) => prev.filter((w) => w.id !== id))
+    } catch (e) {
+      showToast((e as Error).message ?? t.common.error, 'error')
+    } finally {
+      setDeletingId(null)
+      setConfirmDeleteId(null)
+    }
+  }
+
+  const handleToggle = async (item: WebhookItem) => {
+    setTogglingId(item.id)
+    try {
+      await webhooksApi.toggle(item.id, !item.isActive)
+      setWebhookList((prev) =>
+        prev.map((w) => (w.id === item.id ? { ...w, isActive: !w.isActive } : w)),
+      )
+    } catch (e) {
+      showToast((e as Error).message ?? t.common.error, 'error')
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
+  const handleTest = async (event: string) => {
+    if (!testingItem) return
+    setTesting(true)
+    try {
+      const res = await webhooksApi.test(testingItem.id, event)
+      if (res.success) {
+        showToast(wt.testSuccess)
+      } else {
+        showToast(`${wt.testFailed}${res.status ? ` (HTTP ${res.status})` : ''}`, 'error')
+      }
+      setTestingItem(null)
+      loadWebhooks()
+    } catch (e) {
+      showToast((e as Error).message ?? wt.testFailed, 'error')
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
+    { key: 'channels', label: t.notifications.tabChannels, icon: Bell },
+    { key: 'webhooks', label: t.notifications.tabWebhooks, icon: Webhook },
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed right-6 top-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg ${
+            toast.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={16} className="text-emerald-500" />
+          ) : (
+            <XCircle size={16} className="text-red-500" />
+          )}
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-800">{t.notifications.title}</h2>
+        <p className="text-sm text-gray-400">{t.notifications.subtitle}</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 w-fit">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              activeTab === key
+                ? 'bg-white text-amber-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Icon size={15} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Channels Tab */}
+      {activeTab === 'channels' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-800">
+          <p className="font-semibold mb-2">{t.notifications.channelsTitle}</p>
+          <ul className="list-disc list-inside space-y-1 text-xs">
+            <li>Email (SMTP)</li>
+            <li>SMS (AdaSMS, SMS Niaga)</li>
+            <li>WhatsApp Rasmi (WABA)</li>
+            <li>WhatsApp Tidak Rasmi</li>
+            <li>Webhook</li>
+          </ul>
+          <p className="mt-3 text-xs">
+            {t.notifications.configNote}{' '}
+            <code className="rounded bg-blue-100 px-1 py-0.5">POST /api/v1/notification/config</code>
+          </p>
+        </div>
+      )}
+
+      {/* Webhooks Tab */}
+      {activeTab === 'webhooks' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800">{wt.title}</h3>
+              <p className="text-sm text-slate-500">{wt.subtitle}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEditing(null); setShowForm(true) }}
+              className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+            >
+              <Plus size={15} />
+              {wt.add}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+          ) : webhookList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-16 text-center">
+              <div className="mb-4 rounded-2xl bg-amber-100 p-4 text-amber-600">
+                <Zap size={28} />
+              </div>
+              <p className="font-medium text-slate-700">{wt.noWebhooks}</p>
+              <p className="mt-1 text-sm text-slate-400">{wt.noWebhooksHint}</p>
+              <button
+                type="button"
+                onClick={() => { setEditing(null); setShowForm(true) }}
+                className="mt-5 flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                <Plus size={14} />
+                {wt.add}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {webhookList.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`mt-0.5 shrink-0 rounded-lg p-2 ${item.isActive ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+                        <Webhook size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-slate-800">{item.name}</p>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                              item.isActive
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}
+                          >
+                            {item.isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                            {item.isActive ? wt.active : wt.inactive}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 truncate text-sm text-slate-400">{item.url}</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.events.map((event) => (
+                            <span
+                              key={event}
+                              className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                            >
+                              {event}
+                            </span>
+                          ))}
+                        </div>
+                        {item.lastTriggeredAt && (
+                          <p className="mt-2 text-xs text-slate-400">
+                            {wt.lastTriggered}: {new Date(item.lastTriggeredAt).toLocaleString('en-MY')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        disabled={togglingId === item.id}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          item.isActive
+                            ? 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+                            : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {togglingId === item.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : item.isActive ? wt.disable : wt.enable}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setTestingItem(item)}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                      >
+                        {wt.test}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setEditing(item); setShowForm(true) }}
+                        className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-50 hover:text-amber-700"
+                      >
+                        <Pencil size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(item.id)}
+                        className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add/Edit Form Modal */}
+      {showForm && (
+        <WebhookForm
+          initial={editing}
+          onSave={handleSave}
+          onClose={() => { setShowForm(false); setEditing(null) }}
+          saving={saving}
+          t={t}
+        />
+      )}
+
+      {/* Test Event Modal */}
+      {testingItem && (
+        <TestModal
+          item={testingItem}
+          onTest={handleTest}
+          onClose={() => setTestingItem(null)}
+          testing={testing}
+          t={t}
+        />
+      )}
+
+      {/* Delete Confirm Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <Trash2 size={20} />
+            </div>
+            <h3 className="font-semibold text-slate-800">{wt.delete}</h3>
+            <p className="mt-2 text-sm text-slate-500">{wt.deleteConfirm}</p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(confirmDeleteId)}
+                disabled={deletingId === confirmDeleteId}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {deletingId === confirmDeleteId && <Loader2 size={14} className="animate-spin" />}
+                {t.common.delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+

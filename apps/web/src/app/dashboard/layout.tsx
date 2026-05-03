@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { Sidebar } from '@/components/sidebar'
@@ -9,12 +9,26 @@ import { Header } from '@/components/header'
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login')
     }
   }, [user, loading, router])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('emas_sidebar_collapsed')
+    if (saved === '1') setSidebarCollapsed(true)
+  }, [])
+
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem('emas_sidebar_collapsed', next ? '1' : '0')
+      return next
+    })
+  }
 
   if (loading) {
     return (
@@ -33,9 +47,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Header />
+        <Header sidebarCollapsed={sidebarCollapsed} onToggleSidebar={handleToggleSidebar} />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
