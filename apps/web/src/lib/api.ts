@@ -317,4 +317,18 @@ export const systemSettings = {
   getMode: () => request<{ mode: SystemMode }>('/tenant/system-mode'),
   setMode: (mode: SystemMode) =>
     request<{ mode: SystemMode }>('/tenant/system-mode', { method: 'PATCH', body: JSON.stringify({ mode }) }),
+  getSubscription: () => request<{
+    status: string
+    billingCycle: string
+    currentPeriodStart: string
+    currentPeriodEnd: string
+    plan: { name: string; code: string; priceMonthly: number; priceYearly: number; maxUsers: number; maxOrders: number; maxProducts: number }
+  } | Record<string, never>>('/tenant/subscription'),
+}
+
+export const systemUsers = {
+  list: () => request<unknown[]>('/user/members'),
+  listRoles: () => request<unknown[]>('/user/roles'),
+  assignRole: (membershipId: string, roleId: string) =>
+    request<unknown>(`/user/members/${membershipId}/role`, { method: 'PATCH', body: JSON.stringify({ roleId }) }),
 }

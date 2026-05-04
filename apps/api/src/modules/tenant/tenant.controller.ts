@@ -34,6 +34,13 @@ export class TenantController {
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'), OwnerGuard)
+  @Get('subscription')
+  async getSubscription(@CurrentTenant() tenant: TenantContext): Promise<Record<string, unknown>> {
+    return this.tenantService.getSubscription(tenant.id)
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), OwnerGuard)
   @Patch('system-mode')
   async setSystemMode(
     @CurrentTenant() tenant: TenantContext,

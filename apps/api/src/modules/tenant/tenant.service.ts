@@ -37,6 +37,14 @@ export class TenantService {
     return { mode }
   }
 
+  async getSubscription(tenantId: string): Promise<Record<string, unknown>> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      include: { plan: true },
+    })
+    return (subscription ?? {}) as Record<string, unknown>
+  }
+
   async getSystemMode(tenantId: string): Promise<{ mode: SystemMode }> {
     if (this.isEnvMaintenanceEnabled()) {
       return { mode: 'MAINTENANCE' }

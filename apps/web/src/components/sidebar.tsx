@@ -24,6 +24,7 @@ import {
   ChevronRight,
   CreditCard,
   Wrench,
+  ServerCog,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -36,6 +37,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const { t } = useLocale()
 
   const isSettingsActive = pathname.startsWith('/dashboard/settings')
+  const isSystemActive = pathname.startsWith('/dashboard/system')
 
   const navItems = [
     { href: '/dashboard', label: t.nav.overview, icon: LayoutDashboard },
@@ -57,16 +59,38 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const settingsSubItems = [
     { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
     { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
-    ...(isOwner ? [{ href: '/dashboard/settings/system', label: t.systemSettings?.title ?? 'System', icon: Wrench }] : []),
   ]
+
+  const systemSubItems = [
+    { href: '/dashboard/system/settings', label: t.systemSettings?.title ?? 'System Settings', icon: Wrench },
+    { href: '/dashboard/system/users', label: 'User List', icon: Users },
+    { href: '/dashboard/system/plan', label: 'Plan', icon: CreditCard },
+  ]
+
+  const subLink = (href: string, label: string, Icon: React.ElementType) => {
+    const active = pathname.startsWith(href)
+    return (
+      <Link
+        key={href}
+        href={href}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+          active
+            ? 'bg-primary/20 text-black font-semibold border border-primary/60'
+            : 'text-slate-600 hover:bg-orange-50 hover:text-black'
+        }`}
+      >
+        <Icon size={15} />
+        <span>{label}</span>
+        {active && <ChevronRight size={13} className="ml-auto text-primary-dark" />}
+      </Link>
+    )
+  }
 
   return (
     <aside className={`flex flex-col min-h-screen border-r border-slate-200 bg-white text-black transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center border-b border-slate-200 ${collapsed ? 'justify-center px-2 py-5' : 'gap-2 px-6 py-5'}`}>
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold text-sm">
-          E
-        </div>
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold text-sm">E</div>
         {!collapsed && <span className="font-bold text-lg tracking-tight">emas.my</span>}
       </div>
 
@@ -80,9 +104,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               href={href}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                active
-                  ? 'bg-primary/20 text-black font-semibold border border-primary/60'
-                  : 'text-slate-700 hover:bg-orange-50 hover:text-black'
+                active ? 'bg-primary/20 text-black font-semibold border border-primary/60' : 'text-slate-700 hover:bg-orange-50 hover:text-black'
               } ${collapsed ? 'justify-center' : ''}`}
             >
               <Icon size={18} />
@@ -99,46 +121,50 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               href="/dashboard/settings/shipping"
               title={t.nav.settings}
               className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isSettingsActive
-                  ? 'bg-primary/20 text-black font-semibold border border-primary/60'
-                  : 'text-slate-700 hover:bg-orange-50 hover:text-black'
+                isSettingsActive ? 'bg-primary/20 text-black font-semibold border border-primary/60' : 'text-slate-700 hover:bg-orange-50 hover:text-black'
               }`}
             >
               <Settings size={18} />
             </Link>
           ) : (
             <>
-              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isSettingsActive
-                  ? 'bg-primary/10 text-black font-semibold'
-                  : 'text-slate-700'
-              }`}>
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSettingsActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700'}`}>
                 <Settings size={18} />
                 <span>{t.nav.settings}</span>
               </div>
               <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
-                {settingsSubItems.map(({ href, label, icon: Icon }) => {
-                  const active = pathname.startsWith(href)
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        active
-                          ? 'bg-primary/20 text-black font-semibold border border-primary/60'
-                          : 'text-slate-600 hover:bg-orange-50 hover:text-black'
-                      }`}
-                    >
-                      <Icon size={15} />
-                      <span>{label}</span>
-                      {active && <ChevronRight size={13} className="ml-auto text-primary-dark" />}
-                    </Link>
-                  )
-                })}
+                {settingsSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
               </div>
             </>
           )}
         </div>
+
+        {/* System group — owner only */}
+        {isOwner && (
+          <div>
+            {collapsed ? (
+              <Link
+                href="/dashboard/system/settings"
+                title="System"
+                className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isSystemActive ? 'bg-primary/20 text-black font-semibold border border-primary/60' : 'text-slate-700 hover:bg-orange-50 hover:text-black'
+                }`}
+              >
+                <ServerCog size={18} />
+              </Link>
+            ) : (
+              <>
+                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSystemActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700'}`}>
+                  <ServerCog size={18} />
+                  <span>System</span>
+                </div>
+                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+                  {systemSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User + Logout */}
