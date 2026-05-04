@@ -900,6 +900,22 @@ const ms = {
     envProduction: 'Produksi',
     sandboxHint: 'Gunakan sandbox untuk ujian sahaja — jangan gunakan dengan transaksi sebenar',
   },
+  // System Settings
+  systemSettings: {
+    title: 'Tetapan Sistem',
+    subtitle: 'Urus mod sistem dan kebolehaksesan kedai anda',
+    modeLabel: 'Mod Sistem',
+    modeHint: 'Kawal sama ada kedai anda aktif dan boleh diakses oleh pelanggan, atau dalam mod penyelenggaraan.',
+    modeLive: 'Aktif',
+    modeMaintenance: 'Penyelenggaraan',
+    modeDescLive: 'Kedai dibuka dan boleh diakses oleh semua pelanggan.',
+    modeDescMaintenance: 'Kedai ditutup untuk pelanggan. Hanya akses dashboard tersedia.',
+    saving: 'Menyimpan...',
+    saved: 'Disimpan',
+    save: 'Simpan Tetapan',
+    warningTitle: 'Mod penyelenggaraan aktif',
+    warningDesc: 'Kedai anda tidak boleh diakses oleh pelanggan sekarang. Tukar ke Aktif apabila sedia.',
+  },
   // Language
   language: {
     label: 'Bahasa',

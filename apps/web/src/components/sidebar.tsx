@@ -23,6 +23,7 @@ import {
   LogOut,
   ChevronRight,
   CreditCard,
+  Wrench,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -56,6 +57,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const settingsSubItems = [
     { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
     { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
+    { href: '/dashboard/settings/system', label: t.systemSettings?.title ?? 'System', icon: Wrench },
   ]
 
   return (

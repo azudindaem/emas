@@ -305,3 +305,13 @@ export const paymentSettings = {
       body: JSON.stringify({ secretKey, environment }),
     }),
 }
+
+// ─── System Settings ──────────────────────────────────────────────────────────
+
+export type SystemMode = 'ACTIVE' | 'MAINTENANCE'
+
+export const systemSettings = {
+  getMode: () => request<{ mode: SystemMode }>('/tenant/system-mode'),
+  setMode: (mode: SystemMode) =>
+    request<{ mode: SystemMode }>('/tenant/system-mode', { method: 'PATCH', body: JSON.stringify({ mode }) }),
+}

@@ -902,6 +902,22 @@ const en: Translations = {
     envProduction: 'Production',
     sandboxHint: 'Use sandbox for testing only — do not use with real transactions',
   },
+  // System Settings
+  systemSettings: {
+    title: 'System Settings',
+    subtitle: 'Manage your store system mode and availability',
+    modeLabel: 'System Mode',
+    modeHint: 'Control whether your store is live and accessible to customers, or in maintenance mode.',
+    modeLive: 'Live',
+    modeMaintenance: 'Maintenance',
+    modeDescLive: 'Store is open and accessible to all customers.',
+    modeDescMaintenance: 'Store is closed to customers. Only dashboard access is available.',
+    saving: 'Saving...',
+    saved: 'Saved',
+    save: 'Save Settings',
+    warningTitle: 'Maintenance mode is active',
+    warningDesc: 'Your store is currently unavailable to customers. Switch to Live when ready.',
+  },
   // Language
   language: {
     label: 'Language',
