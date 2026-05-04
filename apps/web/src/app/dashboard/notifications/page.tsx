@@ -20,6 +20,12 @@ import {
   MessageSquare,
   MessageCircle,
   Save,
+  CreditCard,
+  Info,
+  TrendingUp,
+  History,
+  Wallet,
+  Send,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,6 +42,7 @@ interface WebhookItem {
 }
 
 type ChannelTab = 'channel' | 'emasNotify' | 'email' | 'sms' | 'whatsapp' | 'wsapme' | 'webhook'
+type EmasNotifyTab = 'dashboard' | 'settings' | 'history' | 'creditHistory'
 
 // ─── Event definitions ────────────────────────────────────────────────────────
 
@@ -362,6 +369,7 @@ export default function NotificationsPage() {
   const wt = t.notifications.webhook
   const ct = t.notifications.channel
   const [activeChannelTab, setActiveChannelTab] = useState<ChannelTab>('channel')
+  const [activeEmasNotifyTab, setActiveEmasNotifyTab] = useState<EmasNotifyTab>('dashboard')
   const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -623,23 +631,168 @@ export default function NotificationsPage() {
               )}
 
               {activeChannelTab === 'emasNotify' && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
-                      <MessageCircle size={16} />
+                <div className="space-y-5 rounded-2xl bg-[#EEF1F4] p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-2xl border border-[#C8DBEC] bg-white p-2.5 shadow-[0_6px_16px_rgba(15,23,42,0.05)] text-[#1E5B8C]">
+                        <Zap size={22} />
+                      </div>
+                      <div>
+                        <h3 className="text-3xl font-bold text-slate-900">Emas Notify</h3>
+                        <p className="text-slate-600">Managed Official WhatsApp notification service</p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <p className="font-semibold text-emerald-900">Emas Notify</p>
-                      <p className="text-sm text-emerald-800">
-                        Emas Notify is a managed WhatsApp notification service that automates order updates for businesses.
-                        With no setup required, users can activate the service by topping up credits.
-                        Customers receive real-time WhatsApp notifications from EMAS official number based on order status changes.
-                      </p>
-                      <div className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
-                        Pay per use: RM 0.080 / message
+                    <button className="flex items-center gap-2 rounded-xl bg-[#1E5B8C] px-6 py-2 font-medium text-white hover:bg-[#174A72]">
+                      <CreditCard size={16} />
+                      Top Up Credits
+                    </button>
+                  </div>
+
+                  <div className="relative rounded-2xl border border-slate-300 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-start gap-4">
+                      <div className="rounded-lg border border-[#C8DBEC] bg-[#E8F1F8] p-2 text-[#1E5B8C]">
+                        <Info size={18} />
+                      </div>
+                      <div className="pr-4">
+                        <h4 className="mb-1 font-semibold text-slate-900">What is Emas Notify?</h4>
+                        <p className="text-sm text-slate-600">
+                          Emas Notify is a managed WhatsApp notification service that automates order updates for businesses.
+                          No setup required, just top up credits and enable notifications. Your customers will automatically
+                          receive WhatsApp updates from EMAS official WhatsApp number when their order status changes
+                          (new order, in transit, delivered, etc.). Pay only for what you use at <span className="font-semibold">RM 0.080 per message</span>.
+                        </p>
                       </div>
                     </div>
                   </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveEmasNotifyTab('dashboard')}
+                      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 font-medium transition-all ${
+                        activeEmasNotifyTab === 'dashboard'
+                          ? 'border border-[#C8DBEC] bg-[#E8F1F8] text-[#1E5B8C]'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      <TrendingUp size={16} />
+                      Dashboard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveEmasNotifyTab('settings')}
+                      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 font-medium transition-all ${
+                        activeEmasNotifyTab === 'settings'
+                          ? 'border border-[#C8DBEC] bg-[#E8F1F8] text-[#1E5B8C]'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      <Bell size={16} />
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveEmasNotifyTab('history')}
+                      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 font-medium transition-all ${
+                        activeEmasNotifyTab === 'history'
+                          ? 'border border-[#C8DBEC] bg-[#E8F1F8] text-[#1E5B8C]'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      <History size={16} />
+                      History
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveEmasNotifyTab('creditHistory')}
+                      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 font-medium transition-all ${
+                        activeEmasNotifyTab === 'creditHistory'
+                          ? 'border border-[#C8DBEC] bg-[#E8F1F8] text-[#1E5B8C]'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      <Wallet size={16} />
+                      Credit History
+                    </button>
+                  </div>
+
+                  {activeEmasNotifyTab === 'dashboard' && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="rounded-lg border border-[#C8DBEC] bg-[#E8F1F8] p-2 text-[#1E5B8C]"><Wallet size={18} /></div>
+                            <span className="text-slate-500">Credit Balance</span>
+                          </div>
+                          <div className="text-4xl font-bold text-slate-900">RM 0.00</div>
+                          <p className="mt-2 text-sm text-slate-500">~0 messages remaining</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="rounded-lg border border-[#D5E2EC] bg-[#EEF4F8] p-2 text-blue-500"><Send size={18} /></div>
+                            <span className="text-slate-500">Sent (30 days)</span>
+                          </div>
+                          <div className="text-4xl font-bold text-slate-900">0</div>
+                          <p className="mt-2 text-sm text-slate-500">0 read</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="rounded-lg bg-green-100 p-2 text-green-600"><CheckCircle2 size={18} /></div>
+                            <span className="text-slate-500">Success Rate</span>
+                          </div>
+                          <div className="text-4xl font-bold text-slate-900">0%</div>
+                          <p className="mt-2 text-sm text-slate-500">0 failed</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                          <div className="mb-4 flex items-center gap-3">
+                            <div className="rounded-lg bg-amber-100 p-2 text-amber-600"><TrendingUp size={18} /></div>
+                            <span className="text-slate-500">Spent (30 days)</span>
+                          </div>
+                          <div className="text-4xl font-bold text-slate-900">RM 0.00</div>
+                          <p className="mt-2 text-sm text-slate-500">@ RM 0.080/message</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                        <div className="mb-4 flex items-center justify-between">
+                          <h4 className="text-lg font-semibold text-slate-900">Service Status</h4>
+                          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">Inactive</div>
+                        </div>
+                        <p className="mb-4 text-sm text-slate-600">Enable Emas Notify in Settings to start sending automated notifications.</p>
+                        <button
+                          type="button"
+                          onClick={() => setActiveEmasNotifyTab('settings')}
+                          className="text-sm font-medium text-[#1E5B8C] hover:text-[#174A72]"
+                        >
+                          Go to Settings -&gt;
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeEmasNotifyTab === 'settings' && (
+                    <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Settings</h4>
+                      <p className="text-sm text-slate-600">Configuration panel for Emas Notify will be enabled here.</p>
+                    </div>
+                  )}
+
+                  {activeEmasNotifyTab === 'history' && (
+                    <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Recent Messages</h4>
+                      <p className="py-8 text-center text-slate-500">No messages sent yet</p>
+                    </div>
+                  )}
+
+                  {activeEmasNotifyTab === 'creditHistory' && (
+                    <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Credit History</h4>
+                      <p className="py-8 text-center text-slate-500">No credit transactions yet</p>
+                    </div>
+                  )}
                 </div>
               )}
 
