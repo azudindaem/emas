@@ -364,7 +364,7 @@ function TestModal({ item, onTest, onClose, testing, t }: TestModalProps) {
 
 // ─── Top Up Modal ─────────────────────────────────────────────────────────────
 
-const PRICE_PER_MESSAGE = 0.80
+const PRICE_PER_MESSAGE = 0.08
 const PROCESSING_FEE = 1.00
 const AMOUNT_PRESETS = [30, 50, 100, 200]
 
@@ -1356,7 +1356,7 @@ export default function NotificationsPage() {
         <TopUpModal
           onClose={() => setShowTopUp(false)}
           onSuccess={(newBalance) => {
-            setCreditBalance((prev) => prev ? { ...prev, balance: newBalance, messagesRemaining: Math.floor(newBalance / 0.80) } : null)
+            setCreditBalance((prev) => prev ? { ...prev, balance: newBalance, messagesRemaining: Math.floor(newBalance / 0.08) } : null)
             setShowTopUp(false)
             showToast(t.notifications.emasNotify.topUp.success)
             loadCreditData()

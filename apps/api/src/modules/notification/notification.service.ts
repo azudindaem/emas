@@ -12,7 +12,7 @@ import {
   UpsertNotificationConfigDto,
 } from './dto/notification.dto'
 
-const PRICE_PER_MESSAGE = 0.80
+const PRICE_PER_MESSAGE = 0.08
 const PROCESSING_FEE = 1.00
 
 @Injectable()

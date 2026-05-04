@@ -678,7 +678,7 @@ const ms = {
       topUpCredits: 'Tambah Nilai Kredit',
       whatIsTitle: 'Apa itu Emas Notify?',
       whatIsDescription: 'Emas Notify ialah servis notifikasi WhatsApp terurus yang mengautomasikan kemas kini pesanan untuk bisnes. Tiada setup diperlukan, hanya tambah nilai kredit dan aktifkan notifikasi. Pelanggan anda akan menerima kemas kini WhatsApp secara automatik daripada nombor rasmi WhatsApp EMAS apabila status pesanan berubah (pesanan baru, dalam penghantaran, dihantar, dan lain-lain). Bayar hanya mengikut penggunaan pada kadar',
-      ratePerMessage: 'RM 0.80 setiap mesej',
+      ratePerMessage: 'RM 0.08 setiap mesej',
       tabs: {
         dashboard: 'Dashboard',
         settings: 'Tetapan',
@@ -693,7 +693,7 @@ const ms = {
         messagesRemaining: '~0 mesej berbaki',
         readCount: '0 dibaca',
         failedCount: '0 gagal',
-        spentRate: '@ RM 0.80/mesej',
+        spentRate: '@ RM 0.08/mesej',
       },
       serviceStatus: {
         title: 'Status Servis',

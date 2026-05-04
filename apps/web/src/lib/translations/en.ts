@@ -680,7 +680,7 @@ const en: Translations = {
       topUpCredits: 'Top Up Credits',
       whatIsTitle: 'What is Emas Notify?',
       whatIsDescription: 'Emas Notify is a managed WhatsApp notification service that automates order updates for businesses. No setup required, just top up credits and enable notifications. Your customers will automatically receive WhatsApp updates from EMAS official WhatsApp number when their order status changes (new order, in transit, delivered, etc.). Pay only for what you use at',
-      ratePerMessage: 'RM 0.80 per message',
+      ratePerMessage: 'RM 0.08 per message',
       tabs: {
         dashboard: 'Dashboard',
         settings: 'Settings',
@@ -695,7 +695,7 @@ const en: Translations = {
         messagesRemaining: '~0 messages remaining',
         readCount: '0 read',
         failedCount: '0 failed',
-        spentRate: '@ RM 0.80/message',
+        spentRate: '@ RM 0.08/message',
       },
       serviceStatus: {
         title: 'Service Status',
