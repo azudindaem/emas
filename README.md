@@ -71,12 +71,26 @@ packages/
 
 | Module | API | UI | Status |
 |---|---|---|---|
-| Courier Account Management | ✅ | ✅ | API + UI ready |
+| Courier Account Management | ✅ | ✅ | Done |
 | AWB Generation | ✅ | 🟡 | API ready, UI partial |
-| Bulk AWB Creation | ✅ | ❌ | API ready |
-| Label Printing (PDF) | ✅ | ❌ | API ready |
+| Bulk AWB Creation | ✅ | ❌ | API ready, UI pending |
+| Label Printing (PDF) | ✅ | ❌ | API ready, UI pending |
 | Shipment Tracking | ✅ | 🟡 | API ready |
 | Shipping Zones + Rates | ✅ | ✅ | Done |
+
+#### Courier Provider Integration
+
+| Provider | Status |
+|---|---|
+| Parcel Daily | ✅ Connected & tested |
+| Ninjavan | ❌ Not connected |
+| POS Malaysia (Poslaju) | ❌ Not connected |
+| J&T Express | ❌ Not connected |
+| DHL | ❌ Not connected |
+| Flash Express | ❌ Not connected |
+| GDEX | ❌ Not connected |
+| Skynet | ❌ Not connected |
+| Airpak | ❌ Not connected |
 
 ### Phase 3 — Commission + Wallet 🟡 In Progress
 
@@ -97,6 +111,21 @@ packages/
 | System Subscription Plans (CRUD) | ✅ | ✅ | Done |
 | System Payment Gateway Config | ✅ | ✅ | Done |
 
+#### Payment Gateway Integration
+
+| Provider | Status |
+|---|---|
+| CHIP | ✅ Integrated & tested |
+| Stripe | ✅ Integrated & tested |
+| AhaPay | ❌ Not connected |
+| BayrCash | ❌ Not connected |
+| Billplz | ❌ Not connected |
+| ToyyibPay | ❌ Not connected |
+| HitPay | ❌ Not connected |
+| Atome | ❌ Not connected |
+| SenangPay | ❌ Not connected |
+| SecurePay | ❌ Not connected |
+
 ---
 
 ## Key Features
@@ -107,8 +136,8 @@ packages/
 - **Product & Inventory** — variations, SKU, multi-warehouse, reserved stock
 - **Commission System** — 7 types: sales, recruitment, channel, network, point, same-level, bonus
 - **Wallet System** — internal wallet, transfers, reload, payout via Billplz
-- **Courier Integration** — 9 providers: Ninjavan, POS Malaysia, J&T, DHL, Flash, GDEX, Skynet, Airpak
-- **Payment Gateways** — 10+: CHIP, Billplz, ToyyibPay, Stripe, HitPay, Atome, AhaPay, BayrCash, and more
+- **Courier Integration** — Parcel Daily ✅ connected & tested; Ninjavan, POS Malaysia, J&T, DHL, Flash, GDEX, Skynet, Airpak pending
+- **Payment Gateways** — CHIP ✅ & Stripe ✅ integrated & tested; AhaPay, BayrCash, Billplz, ToyyibPay, HitPay, Atome, SenangPay pending
 - **Notifications** — Email, SMS, WhatsApp Official (WABA), WhatsApp Unofficial, Webhook
 - **RBAC** — unlimited custom roles, 1-15 user levels, KPI-based auto role upgrade/downgrade
 - **Brand Management** — multi-brand per tenant, separate payment collection, custom AWB
