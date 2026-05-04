@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
+    "postbuild": "node scripts/copy-prisma-engine.js",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
