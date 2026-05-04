@@ -241,8 +241,8 @@ export class NotificationService implements OnModuleDestroy {
       },
       platform: 'api',
       creator_agent: 'api',
-      // success_redirect will have the purchaseId injected by CHIP via {id} placeholder
-      success_redirect: `${returnBase}?topupRef={id}`,
+      // success_redirect: purchaseId passed back via sessionStorage on the frontend
+      success_redirect: `${returnBase}?topupRef=success`,
       failure_redirect: `${returnBase}?topupRef=failed`,
       cancel_redirect: `${returnBase}?topupRef=cancelled`,
     }

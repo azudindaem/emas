@@ -403,7 +403,8 @@ function TopUpModal({ onClose, onSuccess, t }: TopUpModalProps) {
     setPaying(true)
     try {
       const res = await notifyCredit.initiateTopUp(amount)
-      // Redirect to CHIP payment page
+      // Store purchaseId before leaving the page
+      sessionStorage.setItem('emas_notify_topup_id', res.purchaseId)
       window.location.href = res.checkoutUrl
     } catch (e) {
       setError((e as Error).message ?? 'Top up failed')
@@ -645,32 +646,46 @@ export default function NotificationsPage() {
   // Auto-verify top-up on return from CHIP payment page
   useEffect(() => {
     const topupRef = searchParams.get('topupRef')
-    const topupStatus = searchParams.get('topupStatus')
-    if (!topupRef || topupRef === 'success' || topupRef === 'failed' || topupRef === 'cancelled') {
-      if (topupRef === 'success' || topupStatus === 'success') {
-        // CHIP redirected back with success status but no purchaseId — just refresh balance
-        setActiveChannelTab('emasNotify')
-        loadCreditData()
-        router.replace('/dashboard/notifications')
-      }
+    if (!topupRef) return
+
+    setActiveChannelTab('emasNotify')
+
+    if (topupRef === 'failed' || topupRef === 'cancelled') {
+      showToast('Payment ' + topupRef, 'error')
+      router.replace('/dashboard/notifications')
       return
     }
-    // We have a real purchaseId — verify with API
-    setActiveChannelTab('emasNotify')
-    notifyCredit.verifyTopUp(topupRef).then((res) => {
-      if (res.status === 'paid' || res.status === 'already_credited') {
-        if (res.balance !== undefined) {
-          setCreditBalance((prev) => prev
-            ? { ...prev, balance: res.balance!, messagesRemaining: Math.floor(res.balance! / PRICE_PER_MESSAGE) }
-            : null)
-        }
-        showToast(t.notifications.emasNotify.topUp.success)
+
+    if (topupRef === 'success') {
+      // Read purchaseId stored before CHIP redirect
+      const purchaseId = sessionStorage.getItem('emas_notify_topup_id')
+      sessionStorage.removeItem('emas_notify_topup_id')
+
+      if (!purchaseId) {
+        // No purchaseId — just refresh balance
         loadCreditData()
+        router.replace('/dashboard/notifications')
+        return
       }
-      router.replace('/dashboard/notifications')
-    }).catch(() => {
-      router.replace('/dashboard/notifications')
-    })
+
+      notifyCredit.verifyTopUp(purchaseId).then((res) => {
+        if (res.status === 'paid' || res.status === 'already_credited') {
+          if (res.balance !== undefined) {
+            setCreditBalance((prev) => prev
+              ? { ...prev, balance: res.balance!, messagesRemaining: Math.floor(res.balance! / PRICE_PER_MESSAGE) }
+              : null)
+          }
+          showToast(t.notifications.emasNotify.topUp.success)
+          loadCreditData()
+        } else {
+          showToast('Payment not confirmed yet: ' + res.status, 'error')
+        }
+        router.replace('/dashboard/notifications')
+      }).catch((e) => {
+        showToast((e as Error).message ?? 'Verification failed', 'error')
+        router.replace('/dashboard/notifications')
+      })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
