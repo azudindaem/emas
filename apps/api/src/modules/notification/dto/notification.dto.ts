@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator'
 
 export enum NotificationChannelDto {
   EMAIL = 'EMAIL',
@@ -37,4 +37,10 @@ export class SendNotificationDto {
 
   @IsObject()
   variables: Record<string, string>
+}
+
+export class TopUpNotifyCreditDto {
+  @IsNumber()
+  @Min(1)
+  amount: number
 }

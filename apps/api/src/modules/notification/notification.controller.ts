@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { NotificationService } from './notification.service'
@@ -6,7 +6,7 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
 import { RbacGuard } from '../../common/guards/rbac.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
-import { SendNotificationDto, UpsertNotificationConfigDto } from './dto/notification.dto'
+import { SendNotificationDto, TopUpNotifyCreditDto, UpsertNotificationConfigDto } from './dto/notification.dto'
 
 @ApiTags('notification')
 @ApiBearerAuth()
@@ -34,5 +34,30 @@ export class NotificationController {
   @RequirePermission('notification.send')
   send(@CurrentTenant() tenant: TenantContext, @Body() dto: SendNotificationDto) {
     return this.notificationService.send(tenant.id, dto)
+  }
+
+  // ─── Notify Credits ─────────────────────────────────────────────────────
+
+  @Get('credit')
+  getCreditBalance(@CurrentTenant() tenant: TenantContext) {
+    return this.notificationService.getCreditBalance(tenant.id)
+  }
+
+  @Post('credit/topup')
+  async topUpCredit(@CurrentTenant() tenant: TenantContext, @Body() dto: TopUpNotifyCreditDto): Promise<Record<string, unknown>> {
+    return this.notificationService.topUpCredit(tenant.id, dto) as Promise<Record<string, unknown>>
+  }
+
+  @Get('credit/transactions')
+  async listCreditTransactions(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.notificationService.listCreditTransactions(
+      tenant.id,
+      take ? parseInt(take) : 20,
+      skip ? parseInt(skip) : 0,
+    ) as Promise<Record<string, unknown>>
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/lib/locale'
-import { webhooks as webhooksApi, notificationChannels, type NotificationChannelConfig } from '@/lib/api'
+import { webhooks as webhooksApi, notificationChannels, notifyCredit, type NotificationChannelConfig, type NotifyCreditBalance, type NotifyCreditTransaction } from '@/lib/api'
 import {
   Bell,
   Webhook,
@@ -26,6 +26,7 @@ import {
   History,
   Wallet,
   Send,
+  AlertCircle,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -361,6 +362,153 @@ function TestModal({ item, onTest, onClose, testing, t }: TestModalProps) {
   )
 }
 
+// ─── Top Up Modal ─────────────────────────────────────────────────────────────
+
+const PRICE_PER_MESSAGE = 0.80
+const PROCESSING_FEE = 1.00
+const AMOUNT_PRESETS = [30, 50, 100, 200]
+
+interface TopUpModalProps {
+  onClose: () => void
+  onSuccess: (newBalance: number) => void
+  t: ReturnType<typeof useLocale>['t']
+}
+
+function TopUpModal({ onClose, onSuccess, t }: TopUpModalProps) {
+  const tu = t.notifications.emasNotify.topUp
+  const [selectedPreset, setSelectedPreset] = useState<number>(30)
+  const [customAmount, setCustomAmount] = useState('30')
+  const [paying, setPaying] = useState(false)
+  const [error, setError] = useState('')
+
+  const amount = parseFloat(customAmount) || 0
+  const estimatedMessages = amount > 0 ? Math.floor(amount / PRICE_PER_MESSAGE) : 0
+  const total = amount + PROCESSING_FEE
+
+  const handlePreset = (val: number) => {
+    setSelectedPreset(val)
+    setCustomAmount(String(val))
+    setError('')
+  }
+
+  const handleCustom = (val: string) => {
+    setCustomAmount(val)
+    setSelectedPreset(0)
+    setError('')
+  }
+
+  const handlePay = async () => {
+    if (amount < 5) { setError('Minimum top up is RM 5'); return }
+    setPaying(true)
+    try {
+      const res = await notifyCredit.topUp(amount)
+      onSuccess(res.balance)
+    } catch (e) {
+      setError((e as Error).message ?? 'Top up failed')
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h3 className="text-lg font-bold text-slate-900">{tu.title}</h3>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-5 p-6">
+          {/* Amount label */}
+          <div>
+            <p className="mb-3 text-sm font-medium text-slate-600">{tu.amountLabel}</p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {AMOUNT_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => handlePreset(preset)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                    selectedPreset === preset
+                      ? 'bg-slate-800 text-white'
+                      : 'border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  RM {preset}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min="5"
+              value={customAmount}
+              onChange={(e) => handleCustom(e.target.value)}
+              placeholder={tu.customAmount}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+            />
+          </div>
+
+          {/* Summary */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
+            <div className="flex justify-between text-slate-600">
+              <span>{tu.estimatedMessages}</span>
+              <span className="font-semibold text-slate-900">~{estimatedMessages.toLocaleString()} messages</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>{tu.pricePerMessage}</span>
+              <span>RM {PRICE_PER_MESSAGE.toFixed(3)}</span>
+            </div>
+            <div className="my-1 border-t border-slate-200" />
+            <div className="flex justify-between text-slate-600">
+              <span>{tu.credits}</span>
+              <span>RM {amount > 0 ? amount.toFixed(2) : '0.00'}</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>{tu.processingFee}</span>
+              <span>RM {PROCESSING_FEE.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-slate-900">
+              <span>{tu.total}</span>
+              <span>RM {amount > 0 ? total.toFixed(2) : (PROCESSING_FEE).toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-600" />
+            <p className="text-xs text-amber-700">
+              {tu.nonRefundable} <strong>{tu.nonRefundableBold}</strong>{tu.nonRefundableSuffix}
+            </p>
+          </div>
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+
+        <div className="flex gap-3 border-t border-slate-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200"
+          >
+            {tu.cancel}
+          </button>
+          <button
+            type="button"
+            onClick={handlePay}
+            disabled={paying || amount < 5}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60"
+          >
+            {paying ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+            {tu.pay} {amount > 0 ? total.toFixed(2) : PROCESSING_FEE.toFixed(2)}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
@@ -387,6 +535,12 @@ export default function NotificationsPage() {
   const [channelConfigs, setChannelConfigs] = useState<Record<string, NotificationChannelConfig>>({})
   const [channelLoading, setChannelLoading] = useState(false)
   const [channelSaving, setChannelSaving] = useState<string | null>(null)
+
+  // ── Notify Credit State ────────────────────────────────────────────────────
+  const [creditBalance, setCreditBalance] = useState<NotifyCreditBalance | null>(null)
+  const [creditTxs, setCreditTxs] = useState<NotifyCreditTransaction[]>([])
+  const [creditLoading, setCreditLoading] = useState(false)
+  const [showTopUp, setShowTopUp] = useState(false)
 
   // Email form
   const [emailForm, setEmailForm] = useState({ host: '', port: '587', secure: false, user: '', pass: '', from: '' })
@@ -469,6 +623,22 @@ export default function NotificationsPage() {
     setTimeout(() => setToast(null), 3000)
   }
 
+  const loadCreditData = useCallback(async () => {
+    setCreditLoading(true)
+    try {
+      const [balance, txData] = await Promise.all([
+        notifyCredit.getBalance(),
+        notifyCredit.listTransactions(20, 0),
+      ])
+      setCreditBalance(balance)
+      setCreditTxs(txData.transactions)
+    } catch {
+      // ignore
+    } finally {
+      setCreditLoading(false)
+    }
+  }, [])
+
   const loadWebhooks = useCallback(async () => {
     setLoading(true)
     try {
@@ -486,8 +656,12 @@ export default function NotificationsPage() {
       loadWebhooks()
       return
     }
+    if (activeChannelTab === 'emasNotify') {
+      loadCreditData()
+      return
+    }
     loadChannelConfigs()
-  }, [activeChannelTab, loadWebhooks, loadChannelConfigs])
+  }, [activeChannelTab, loadWebhooks, loadChannelConfigs, loadCreditData])
 
   const handleSave = async (data: Omit<WebhookItem, 'id' | 'createdAt' | 'lastTriggeredAt'>) => {
     setSaving(true)
@@ -643,7 +817,11 @@ export default function NotificationsPage() {
                         <p className="text-slate-600">{et.subtitle}</p>
                       </div>
                     </div>
-                    <button className="flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2 font-medium text-white hover:bg-amber-700">
+                    <button
+                      type="button"
+                      onClick={() => setShowTopUp(true)}
+                      className="flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2 font-medium text-white hover:bg-amber-700"
+                    >
                       <CreditCard size={16} />
                       {et.topUpCredits}
                     </button>
@@ -716,14 +894,23 @@ export default function NotificationsPage() {
 
                   {activeEmasNotifyTab === 'dashboard' && (
                     <div className="space-y-5">
+                      {creditLoading ? (
+                        <div className="flex items-center justify-center py-8 text-slate-400">
+                          <Loader2 size={20} className="animate-spin" />
+                        </div>
+                      ) : (
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-700"><Wallet size={18} /></div>
                             <span className="text-slate-500">{et.stats.creditBalance}</span>
                           </div>
-                          <div className="text-4xl font-bold text-slate-900">RM 0.00</div>
-                          <p className="mt-2 text-sm text-slate-500">{et.stats.messagesRemaining}</p>
+                          <div className="text-4xl font-bold text-slate-900">
+                            RM {creditBalance ? creditBalance.balance.toFixed(2) : '0.00'}
+                          </div>
+                          <p className="mt-2 text-sm text-slate-500">
+                            ~{creditBalance ? creditBalance.messagesRemaining.toLocaleString() : 0} messages remaining
+                          </p>
                         </div>
 
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
@@ -753,6 +940,7 @@ export default function NotificationsPage() {
                           <p className="mt-2 text-sm text-slate-500">{et.stats.spentRate}</p>
                         </div>
                       </div>
+                      )}
 
                       <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                         <div className="mb-4 flex items-center justify-between">
@@ -786,9 +974,37 @@ export default function NotificationsPage() {
                   )}
 
                   {activeEmasNotifyTab === 'creditHistory' && (
-                    <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-                      <h4 className="mb-2 text-lg font-semibold text-slate-900">{et.panels.creditHistoryTitle}</h4>
-                      <p className="py-8 text-center text-slate-500">{et.panels.creditHistoryEmpty}</p>
+                    <div className="rounded-2xl border border-slate-300 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                      <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                        <h4 className="font-semibold text-slate-900">{et.panels.creditHistoryTitle}</h4>
+                      </div>
+                      {creditTxs.length === 0 ? (
+                        <p className="py-10 text-center text-slate-400">{et.panels.creditHistoryEmpty}</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {creditTxs.map((tx) => (
+                            <div key={tx.id} className="flex items-center justify-between px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`rounded-lg p-2 ${tx.type === 'TOPUP' ? 'bg-emerald-100 text-emerald-600' : tx.type === 'REFUND' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-500'}`}>
+                                  {tx.type === 'TOPUP' ? <Wallet size={16} /> : tx.type === 'REFUND' ? <CheckCircle2 size={16} /> : <Send size={16} />}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-800">
+                                    {tx.type === 'TOPUP' ? et.creditHistory.topup : tx.type === 'REFUND' ? et.creditHistory.refund : et.creditHistory.debit}
+                                  </p>
+                                  <p className="text-xs text-slate-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-sm font-semibold ${tx.type === 'TOPUP' || tx.type === 'REFUND' ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {tx.type === 'TOPUP' || tx.type === 'REFUND' ? '+' : '-'}RM {Number(tx.amount).toFixed(2)}
+                                </p>
+                                <p className="text-xs text-slate-400">RM {Number(tx.balanceAfter).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1133,6 +1349,20 @@ export default function NotificationsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Top Up Credits Modal */}
+      {showTopUp && (
+        <TopUpModal
+          onClose={() => setShowTopUp(false)}
+          onSuccess={(newBalance) => {
+            setCreditBalance((prev) => prev ? { ...prev, balance: newBalance, messagesRemaining: Math.floor(newBalance / 0.80) } : null)
+            setShowTopUp(false)
+            showToast(t.notifications.emasNotify.topUp.success)
+            loadCreditData()
+          }}
+          t={t}
+        />
       )}
 
       {/* Add/Edit Form Modal */}

@@ -362,6 +362,37 @@ export const notificationChannels = {
     }),
 }
 
+export interface NotifyCreditBalance {
+  balance: number
+  messagesRemaining: number
+  pricePerMessage: number
+}
+
+export interface NotifyCreditTransaction {
+  id: string
+  type: 'TOPUP' | 'DEBIT' | 'REFUND'
+  amount: number
+  balanceBefore: number
+  balanceAfter: number
+  processingFee: number
+  note: string | null
+  status: string
+  createdAt: string
+}
+
+export const notifyCredit = {
+  getBalance: () => request<NotifyCreditBalance>('/notification/credit'),
+  topUp: (amount: number) =>
+    request<{ balance: number; messagesAdded: number }>('/notification/credit/topup', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+  listTransactions: (take = 20, skip = 0) =>
+    request<{ transactions: NotifyCreditTransaction[]; total: number }>(
+      `/notification/credit/transactions?take=${take}&skip=${skip}`,
+    ),
+}
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const roles = {

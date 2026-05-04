@@ -47,6 +47,7 @@ model Tenant {
   webhooks     Webhook[]
   paymentGatewayConfigs PaymentGatewayConfig[]
   systemPaymentGatewayConfigs SystemPaymentGatewayConfig[]
+  notifyCredit         NotifyCredit?
 
   @@index([slug])
 }
@@ -697,6 +698,12 @@ enum CourierProvider {
   OTHERS
 }
 
+enum NotifyCreditTransactionType {
+  TOPUP
+  DEBIT
+  REFUND
+}
+
 enum WalletTransactionType {
   CREDIT
   DEBIT
@@ -865,6 +872,40 @@ enum ShippingRateType {
   FREE_SHIPPING
   COD_SURCHARGE
   REMOTE_SURCHARGE
+}
+
+// ─────────────────────────────────────────────────────────
+// EMAS NOTIFY CREDITS
+// ─────────────────────────────────────────────────────────
+
+model NotifyCredit {
+  id        String   @id @default(uuid())
+  tenantId  String   @unique
+  balance   Decimal  @db.Decimal(12,2) @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions NotifyCreditTransaction[]
+}
+
+model NotifyCreditTransaction {
+  id            String                      @id @default(uuid())
+  creditId      String
+  type          NotifyCreditTransactionType
+  amount        Decimal                     @db.Decimal(12,2)
+  balanceBefore Decimal                     @db.Decimal(12,2)
+  balanceAfter  Decimal                     @db.Decimal(12,2)
+  processingFee Decimal                     @db.Decimal(12,2) @default(0)
+  referenceId   String?
+  note          String?
+  status        String                      @default("COMPLETED")
+  createdAt     DateTime                    @default(now())
+
+  credit NotifyCredit @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@index([creditId])
+  @@index([createdAt])
 }
 
 model Webhook {
