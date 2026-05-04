@@ -186,6 +186,10 @@ export const invoices = {
     request<{ gateway: string; checkoutUrl: string; purchaseId?: string }>(`/invoice/${id}/payment-link`, {
       method: 'POST',
     }),
+  syncPaymentStatus: (id: string) =>
+    request<{ updated: boolean; chipStatus: string; paymentStatus: string }>(`/invoice/${id}/payment-sync`, {
+      method: 'POST',
+    }),
 }
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────

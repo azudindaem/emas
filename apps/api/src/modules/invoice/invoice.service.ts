@@ -128,6 +128,9 @@ export class InvoiceService {
       throw new BadRequestException('Invalid invoice total amount')
     }
 
+    const appBaseUrl = (process.env.APP_BASE_URL ?? process.env.WEB_APP_URL ?? 'https://dev.emas.my').replace(/\/$/, '')
+    const successUrl = `${appBaseUrl}/dashboard/invoices?invoiceId=${invoice.id}&syncPayment=1`
+
     const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
     const payload = {
       brand_id: brandId,
@@ -149,6 +152,9 @@ export class InvoiceService {
       },
       platform: 'api',
       creator_agent: 'api',
+      success_redirect: successUrl,
+      failure_redirect: successUrl,
+      cancel_redirect: successUrl,
     }
 
     const res = await fetch(`${baseUrl}/api/v1/purchases/`, {
@@ -184,6 +190,84 @@ export class InvoiceService {
       gateway: 'CHIP',
       checkoutUrl,
       purchaseId: data.id,
+    }
+  }
+
+  async syncCustomerPaymentStatus(
+    tenantId: string,
+    ownerId: string,
+    invoiceId: string,
+  ): Promise<{ updated: boolean; chipStatus: string; paymentStatus: string }> {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, tenantId, ownerId },
+      include: { order: true },
+    })
+    if (!invoice) throw new NotFoundException('Invoice not found')
+    if (invoice.type !== 'CUSTOMER') {
+      throw new BadRequestException('Only CUSTOMER invoice can sync payment status')
+    }
+
+    const chipPayment = await this.prisma.orderPayment.findFirst({
+      where: { orderId: invoice.orderId, method: 'CHIP' },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!chipPayment || !chipPayment.gatewayRef) {
+      throw new BadRequestException('No CHIP payment record found for this invoice')
+    }
+
+    const chip = await this.prisma.paymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
+    })
+    if (!chip || !chip.isEnabled) {
+      throw new BadRequestException('CHIP gateway is not enabled')
+    }
+
+    const config = (chip.config ?? {}) as Record<string, unknown>
+    const secretKey = String(config.secret_key ?? '').trim()
+    const environment = String(config.environment ?? 'production').toLowerCase()
+    if (!secretKey) {
+      throw new BadRequestException('CHIP secret_key is missing in payment settings')
+    }
+
+    const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
+    const res = await fetch(`${baseUrl}/api/v1/purchases/${chipPayment.gatewayRef}/`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new BadRequestException(`CHIP fetch purchase failed ${res.status}: ${body}`)
+    }
+
+    const data = await res.json() as { status?: string }
+    const chipStatus = String(data.status ?? '').toLowerCase()
+    const isPaid = chipStatus === 'paid'
+
+    if (isPaid) {
+      await this.prisma.$transaction([
+        this.prisma.order.update({
+          where: { id: invoice.orderId },
+          data: { paymentStatus: PaymentStatus.PAID },
+        }),
+        this.prisma.orderPayment.update({
+          where: { id: chipPayment.id },
+          data: {
+            status: PaymentStatus.PAID,
+            paidAt: chipPayment.paidAt ?? new Date(),
+          },
+        }),
+      ])
+
+      return {
+        updated: true,
+        chipStatus,
+        paymentStatus: PaymentStatus.PAID,
+      }
+    }
+
+    return {
+      updated: false,
+      chipStatus,
+      paymentStatus: String(invoice.order.paymentStatus),
     }
   }
 

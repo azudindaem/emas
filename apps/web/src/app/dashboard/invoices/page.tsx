@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoices as invoicesApi } from '@/lib/api'
 import { Badge, Pagination } from '@/components/ui'
 import { useLocale } from '@/lib/locale'
 import { Plus, X, Loader2, Eye } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 interface InvoiceItem {
   id: string
@@ -49,6 +50,10 @@ const statusColor: Record<string, 'yellow' | 'green' | 'red' | 'gray' | 'blue'> 
 
 export default function InvoicesPage() {
   const { t } = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const didAutoSyncRef = useRef(false)
   const [items, setItems] = useState<Invoice[]>([])
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 })
   const [page, setPage] = useState(1)
@@ -59,10 +64,11 @@ export default function InvoicesPage() {
   const [form, setForm] = useState({ orderId: '', type: 'CUSTOMER' })
   const [saving, setSaving] = useState(false)
   const [linkLoading, setLinkLoading] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Invoice | null>(null)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
     const params: Record<string, string> = { page: String(page), limit: '20' }
     if (search) params.search = search
@@ -70,9 +76,33 @@ export default function InvoicesPage() {
     invoicesApi.list(params)
       .then(res => { setItems(res.items as Invoice[]); setMeta(res.meta as typeof meta) })
       .finally(() => setLoading(false))
-  }
+  }, [page, search, typeFilter])
 
-  useEffect(load, [page, search, typeFilter])
+  useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (didAutoSyncRef.current) return
+    const shouldSync = searchParams.get('syncPayment') === '1'
+    const invoiceId = searchParams.get('invoiceId')
+    if (!shouldSync || !invoiceId) return
+
+    didAutoSyncRef.current = true
+    void (async () => {
+      try {
+        await invoicesApi.syncPaymentStatus(invoiceId)
+        const inv = await invoicesApi.get(invoiceId) as Invoice
+        setSelected(inv)
+        load()
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Gagal sync payment status')
+      } finally {
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('syncPayment')
+        params.delete('invoiceId')
+        router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname)
+      }
+    })()
+  }, [load, pathname, router, searchParams])
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true); setError('')
@@ -99,6 +129,21 @@ export default function InvoicesPage() {
       setError(e instanceof Error ? e.message : 'Gagal jana payment link')
     } finally {
       setLinkLoading(false)
+    }
+  }
+
+  const handleSyncPaymentStatus = async (invoiceId: string) => {
+    setSyncLoading(true)
+    setError('')
+    try {
+      await invoicesApi.syncPaymentStatus(invoiceId)
+      const inv = await invoicesApi.get(invoiceId) as Invoice
+      setSelected(inv)
+      load()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Gagal sync payment status')
+    } finally {
+      setSyncLoading(false)
     }
   }
 
@@ -235,6 +280,15 @@ export default function InvoicesPage() {
             </div>
             {selected.type === 'CUSTOMER' && selected.status !== 'PAID' && (
               <div className="px-5 pb-4">
+                <button
+                  type="button"
+                  onClick={() => void handleSyncPaymentStatus(selected.id)}
+                  disabled={syncLoading}
+                  className="w-full mb-2 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+                >
+                  {syncLoading && <Loader2 size={14} className="animate-spin" />}
+                  Sync Payment Status
+                </button>
                 <button
                   type="button"
                   onClick={() => {

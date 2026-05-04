@@ -72,4 +72,16 @@ export class InvoiceController {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
     return this.invoiceService.createCustomerPaymentLink(tenant.id, ownerId, id)
   }
+
+  @Post(':id/payment-sync')
+  @UseGuards(RbacGuard)
+  @RequirePermission('invoice.write')
+  async syncPaymentStatus(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Param('id') id: string,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.invoiceService.syncCustomerPaymentStatus(tenant.id, ownerId, id)
+  }
 }
