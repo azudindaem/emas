@@ -2,9 +2,11 @@
 const path = require('path')
 const fs = require('fs')
 
-const standaloneDir = path.join(__dirname, '../.next/standalone/apps/web/.prisma/client')
+const webDir = path.join(__dirname, '..')
+const standaloneDir = path.join(webDir, '.next/standalone/apps/web')
 const pnpmStore = path.join(__dirname, '../../../node_modules/.pnpm')
 
+// ── 1. Copy Prisma engine ────────────────────────────────────────────────────
 function findEngineFiles(dir, results = []) {
   if (!fs.existsSync(dir)) return results
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -26,20 +28,54 @@ function findEngineFiles(dir, results = []) {
 }
 
 try {
-  const files = findEngineFiles(pnpmStore)
-
-  if (!files.length) {
-    console.log('No Prisma engine files found to copy.')
-    process.exit(0)
-  }
-
-  fs.mkdirSync(standaloneDir, { recursive: true })
-
-  for (const file of files) {
-    const dest = path.join(standaloneDir, path.basename(file))
-    fs.copyFileSync(file, dest)
-    console.log(`Copied: ${path.basename(file)} -> .next/standalone/apps/web/.prisma/client/`)
+  const engines = findEngineFiles(pnpmStore)
+  if (engines.length) {
+    const engineDest = path.join(standaloneDir, '.prisma/client')
+    fs.mkdirSync(engineDest, { recursive: true })
+    for (const file of engines) {
+      fs.copyFileSync(file, path.join(engineDest, path.basename(file)))
+      console.log(`[prisma] Copied: ${path.basename(file)}`)
+    }
+  } else {
+    console.log('[prisma] No engine files found.')
   }
 } catch (e) {
-  console.warn('Warning: Could not copy Prisma engine files:', e.message)
+  console.warn('[prisma] Warning:', e.message)
+}
+
+// ── 2. Copy .next/static ────────────────────────────────────────────────────
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name)
+    const destPath = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath)
+    } else {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
+try {
+  const staticSrc = path.join(webDir, '.next/static')
+  const staticDest = path.join(standaloneDir, '.next/static')
+  if (fs.existsSync(staticSrc)) {
+    copyDir(staticSrc, staticDest)
+    console.log('[static] Copied .next/static -> standalone/.next/static')
+  }
+} catch (e) {
+  console.warn('[static] Warning:', e.message)
+}
+
+// ── 3. Copy public/ ─────────────────────────────────────────────────────────
+try {
+  const publicSrc = path.join(webDir, 'public')
+  const publicDest = path.join(standaloneDir, 'public')
+  if (fs.existsSync(publicSrc)) {
+    copyDir(publicSrc, publicDest)
+    console.log('[public] Copied public/ -> standalone/public/')
+  }
+} catch (e) {
+  console.warn('[public] Warning:', e.message)
 }
