@@ -31,6 +31,10 @@ export class SendNotificationDto {
   @IsNotEmpty()
   templateId: string
 
+  @IsOptional()
+  @IsString()
+  subject?: string
+
   @IsObject()
   variables: Record<string, string>
 }

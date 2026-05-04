@@ -63,15 +63,14 @@ export class NotificationService implements OnModuleDestroy {
   }
 
   async send(tenantId: string, dto: SendNotificationDto): Promise<Record<string, unknown>> {
-    const channel = this.mapChannel(dto.channel)
-
     const job = await this.queue.add(
       'send',
       {
         tenantId,
-        channel,
+        channel: dto.channel,
         recipient: dto.recipient,
         templateId: dto.templateId,
+        subject: dto.subject,
         variables: dto.variables,
       },
       {
@@ -90,11 +89,5 @@ export class NotificationService implements OnModuleDestroy {
       jobId: job.id,
       queue: 'notification',
     }
-  }
-
-  private mapChannel(channel: NotificationChannelDto): 'email' | 'sms' | 'whatsapp' {
-    if (channel === NotificationChannelDto.EMAIL) return 'email'
-    if (channel === NotificationChannelDto.SMS) return 'sms'
-    return 'whatsapp'
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/lib/locale'
-import { webhooks as webhooksApi } from '@/lib/api'
+import { webhooks as webhooksApi, notificationChannels, type NotificationChannelConfig } from '@/lib/api'
 import {
   Bell,
   Webhook,
@@ -16,6 +16,11 @@ import {
   Shield,
   Globe,
   Zap,
+  Mail,
+  MessageSquare,
+  MessageCircle,
+  Save,
+  Settings,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -354,7 +359,9 @@ function TestModal({ item, onTest, onClose, testing, t }: TestModalProps) {
 
 export default function NotificationsPage() {
   const { t } = useLocale()
+  const nt = t.notifications
   const wt = t.notifications.webhook
+  const ct = t.notifications.channel
   const [activeTab, setActiveTab] = useState<Tab>('channels')
   const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -367,6 +374,89 @@ export default function NotificationsPage() {
   const [testingItem, setTestingItem] = useState<WebhookItem | null>(null)
   const [testing, setTesting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  // ── Channel Config State ──────────────────────────────────────────────────
+  const [channelConfigs, setChannelConfigs] = useState<Record<string, NotificationChannelConfig>>({})
+  const [channelLoading, setChannelLoading] = useState(false)
+  const [channelSaving, setChannelSaving] = useState<string | null>(null)
+  const [expandedChannel, setExpandedChannel] = useState<string | null>(null)
+
+  // Email form
+  const [emailForm, setEmailForm] = useState({ host: '', port: '587', secure: false, user: '', pass: '', from: '' })
+  // SMS form
+  const [smsForm, setSmsForm] = useState({ provider: 'adasms', apiKey: '', apiPassword: '', senderId: '' })
+  // Wsapme form
+  const [wsapmeForm, setWsapmeForm] = useState({ apiUrl: 'https://app.wsapme.com/api/send', token: '', senderId: '' })
+
+  const loadChannelConfigs = useCallback(async () => {
+    setChannelLoading(true)
+    try {
+      const data = await notificationChannels.list()
+      const map: Record<string, NotificationChannelConfig> = {}
+      for (const cfg of data) {
+        map[cfg.channel] = cfg
+        if (cfg.channel === 'EMAIL') {
+          const s = cfg.settings as Record<string, unknown>
+          setEmailForm({
+            host: (s.host as string) ?? '',
+            port: String(s.port ?? '587'),
+            secure: Boolean(s.secure),
+            user: (s.user as string) ?? '',
+            pass: (s.pass as string) ?? '',
+            from: (s.from as string) ?? '',
+          })
+        } else if (cfg.channel === 'SMS') {
+          const s = cfg.settings as Record<string, unknown>
+          setSmsForm({
+            provider: (s.provider as string) ?? 'adasms',
+            apiKey: (s.apiKey as string) ?? '',
+            apiPassword: (s.apiPassword as string) ?? '',
+            senderId: (s.senderId as string) ?? '',
+          })
+        } else if (cfg.channel === 'WHATSAPP_UNOFFICIAL') {
+          const s = cfg.settings as Record<string, unknown>
+          setWsapmeForm({
+            apiUrl: (s.apiUrl as string) ?? 'https://app.wsapme.com/api/send',
+            token: (s.token as string) ?? '',
+            senderId: (s.senderId as string) ?? '',
+          })
+        }
+      }
+      setChannelConfigs(map)
+    } catch {
+      setChannelConfigs({})
+    } finally {
+      setChannelLoading(false)
+    }
+  }, [])
+
+  const saveChannel = async (channel: 'EMAIL' | 'SMS' | 'WHATSAPP_UNOFFICIAL', settings: Record<string, unknown>, isActive: boolean) => {
+    setChannelSaving(channel)
+    try {
+      const cfg = await notificationChannels.upsert(channel, settings, isActive)
+      setChannelConfigs((prev) => ({ ...prev, [channel]: cfg }))
+      showToast(nt.saveSuccess)
+      setExpandedChannel(null)
+    } catch {
+      showToast(nt.saveFail, 'error')
+    } finally {
+      setChannelSaving(null)
+    }
+  }
+
+  const toggleChannel = async (channel: 'EMAIL' | 'SMS' | 'WHATSAPP_UNOFFICIAL') => {
+    const cfg = channelConfigs[channel]
+    if (!cfg) return
+    setChannelSaving(channel)
+    try {
+      const updated = await notificationChannels.upsert(channel, cfg.settings, !cfg.isActive)
+      setChannelConfigs((prev) => ({ ...prev, [channel]: updated }))
+    } catch {
+      showToast(nt.saveFail, 'error')
+    } finally {
+      setChannelSaving(null)
+    }
+  }
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -387,7 +477,8 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (activeTab === 'webhooks') loadWebhooks()
-  }, [activeTab, loadWebhooks])
+    if (activeTab === 'channels') loadChannelConfigs()
+  }, [activeTab, loadWebhooks, loadChannelConfigs])
 
   const handleSave = async (data: Omit<WebhookItem, 'id' | 'createdAt' | 'lastTriggeredAt'>) => {
     setSaving(true)
@@ -507,19 +598,228 @@ export default function NotificationsPage() {
 
       {/* Channels Tab */}
       {activeTab === 'channels' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-800">
-          <p className="font-semibold mb-2">{t.notifications.channelsTitle}</p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>Email (SMTP)</li>
-            <li>SMS (AdaSMS, SMS Niaga)</li>
-            <li>WhatsApp Rasmi (WABA)</li>
-            <li>WhatsApp Tidak Rasmi</li>
-            <li>Webhook</li>
-          </ul>
-          <p className="mt-3 text-xs">
-            {t.notifications.configNote}{' '}
-            <code className="rounded bg-blue-100 px-1 py-0.5">POST /api/v1/notification/config</code>
-          </p>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-semibold text-slate-800">{nt.channelsTitle}</h3>
+            <p className="text-sm text-slate-500">{nt.subtitle}</p>
+          </div>
+
+          {channelLoading ? (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+
+              {/* ── Email ─────────────────────────────────────────── */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-lg p-2 ${channelConfigs['EMAIL']?.isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>
+                      <Mail size={16} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{ct.email.title}</p>
+                      <p className="text-xs text-slate-400">{ct.email.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {channelConfigs['EMAIL'] && (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border ${channelConfigs['EMAIL'].isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        {channelConfigs['EMAIL'].isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                        {channelConfigs['EMAIL'].isActive ? nt.enabled : nt.disabled}
+                      </span>
+                    )}
+                    {channelConfigs['EMAIL'] && (
+                      <button
+                        type="button"
+                        onClick={() => toggleChannel('EMAIL')}
+                        disabled={channelSaving === 'EMAIL'}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
+                      >
+                        {channelSaving === 'EMAIL' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['EMAIL']?.isActive ? nt.disable : nt.enable}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedChannel(expandedChannel === 'EMAIL' ? null : 'EMAIL')}
+                      className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                    >
+                      <Settings size={12} />
+                      {nt.configure}
+                    </button>
+                  </div>
+                </div>
+
+                {expandedChannel === 'EMAIL' && (
+                  <form
+                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                    onSubmit={(e) => { e.preventDefault(); saveChannel('EMAIL', { host: emailForm.host, port: Number(emailForm.port), secure: emailForm.secure, user: emailForm.user, pass: emailForm.pass, from: emailForm.from }, channelConfigs['EMAIL']?.isActive ?? true) }}
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.host}</label>
+                        <input value={emailForm.host} onChange={(e) => setEmailForm((f) => ({ ...f, host: e.target.value }))} placeholder={ct.email.hostPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.port}</label>
+                        <input type="number" value={emailForm.port} onChange={(e) => setEmailForm((f) => ({ ...f, port: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.user}</label>
+                      <input value={emailForm.user} onChange={(e) => setEmailForm((f) => ({ ...f, user: e.target.value }))} placeholder={ct.email.userPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.pass}</label>
+                      <input type="password" value={emailForm.pass} onChange={(e) => setEmailForm((f) => ({ ...f, pass: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.from}</label>
+                      <input value={emailForm.from} onChange={(e) => setEmailForm((f) => ({ ...f, from: e.target.value }))} placeholder={ct.email.fromPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input type="checkbox" checked={emailForm.secure} onChange={(e) => setEmailForm((f) => ({ ...f, secure: e.target.checked }))} className="accent-amber-600" />
+                      <span className="text-sm text-slate-700">{ct.email.secure}</span>
+                    </label>
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={channelSaving === 'EMAIL'} className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60">
+                        {channelSaving === 'EMAIL' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        {t.common.save}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+              {/* ── SMS ───────────────────────────────────────────── */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-lg p-2 ${channelConfigs['SMS']?.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                      <MessageSquare size={16} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{ct.sms.title}</p>
+                      <p className="text-xs text-slate-400">{ct.sms.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {channelConfigs['SMS'] && (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border ${channelConfigs['SMS'].isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        {channelConfigs['SMS'].isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                        {channelConfigs['SMS'].isActive ? nt.enabled : nt.disabled}
+                      </span>
+                    )}
+                    {channelConfigs['SMS'] && (
+                      <button type="button" onClick={() => toggleChannel('SMS')} disabled={channelSaving === 'SMS'} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50">
+                        {channelSaving === 'SMS' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['SMS']?.isActive ? nt.disable : nt.enable}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setExpandedChannel(expandedChannel === 'SMS' ? null : 'SMS')} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                      <Settings size={12} />
+                      {nt.configure}
+                    </button>
+                  </div>
+                </div>
+
+                {expandedChannel === 'SMS' && (
+                  <form
+                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                    onSubmit={(e) => { e.preventDefault(); saveChannel('SMS', { provider: smsForm.provider, apiKey: smsForm.apiKey, apiPassword: smsForm.apiPassword, senderId: smsForm.senderId }, channelConfigs['SMS']?.isActive ?? true) }}
+                  >
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.sms.provider}</label>
+                      <select value={smsForm.provider} onChange={(e) => setSmsForm((f) => ({ ...f, provider: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
+                        <option value="adasms">{ct.sms.providerAdasms}</option>
+                        <option value="smsniaga">{ct.sms.providerSmsniaga}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.sms.apiKey}</label>
+                      <input value={smsForm.apiKey} onChange={(e) => setSmsForm((f) => ({ ...f, apiKey: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    {smsForm.provider === 'smsniaga' && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-600">{ct.sms.apiPassword}</label>
+                        <input type="password" value={smsForm.apiPassword} onChange={(e) => setSmsForm((f) => ({ ...f, apiPassword: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                        <p className="mt-1 text-xs text-slate-400">{ct.sms.apiPasswordHint}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.sms.senderId}</label>
+                      <input value={smsForm.senderId} onChange={(e) => setSmsForm((f) => ({ ...f, senderId: e.target.value }))} placeholder={ct.sms.senderIdPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={channelSaving === 'SMS'} className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60">
+                        {channelSaving === 'SMS' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        {t.common.save}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+              {/* ── Wsapme ────────────────────────────────────────── */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-lg p-2 ${channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                      <MessageCircle size={16} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{ct.wsapme.title}</p>
+                      <p className="text-xs text-slate-400">{ct.wsapme.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {channelConfigs['WHATSAPP_UNOFFICIAL'] && (
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border ${channelConfigs['WHATSAPP_UNOFFICIAL'].isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        {channelConfigs['WHATSAPP_UNOFFICIAL'].isActive ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                        {channelConfigs['WHATSAPP_UNOFFICIAL'].isActive ? nt.enabled : nt.disabled}
+                      </span>
+                    )}
+                    {channelConfigs['WHATSAPP_UNOFFICIAL'] && (
+                      <button type="button" onClick={() => toggleChannel('WHATSAPP_UNOFFICIAL')} disabled={channelSaving === 'WHATSAPP_UNOFFICIAL'} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50">
+                        {channelSaving === 'WHATSAPP_UNOFFICIAL' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ? nt.disable : nt.enable}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setExpandedChannel(expandedChannel === 'WHATSAPP_UNOFFICIAL' ? null : 'WHATSAPP_UNOFFICIAL')} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                      <Settings size={12} />
+                      {nt.configure}
+                    </button>
+                  </div>
+                </div>
+
+                {expandedChannel === 'WHATSAPP_UNOFFICIAL' && (
+                  <form
+                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                    onSubmit={(e) => { e.preventDefault(); saveChannel('WHATSAPP_UNOFFICIAL', { apiUrl: wsapmeForm.apiUrl, token: wsapmeForm.token, senderId: wsapmeForm.senderId }, channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ?? true) }}
+                  >
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.apiUrl}</label>
+                      <input value={wsapmeForm.apiUrl} onChange={(e) => setWsapmeForm((f) => ({ ...f, apiUrl: e.target.value }))} placeholder={ct.wsapme.apiUrlPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.token}</label>
+                      <input type="password" value={wsapmeForm.token} onChange={(e) => setWsapmeForm((f) => ({ ...f, token: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.senderId}</label>
+                      <input value={wsapmeForm.senderId} onChange={(e) => setWsapmeForm((f) => ({ ...f, senderId: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    </div>
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={channelSaving === 'WHATSAPP_UNOFFICIAL'} className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60">
+                        {channelSaving === 'WHATSAPP_UNOFFICIAL' ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        {t.common.save}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       )}
 

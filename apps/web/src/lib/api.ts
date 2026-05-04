@@ -342,6 +342,26 @@ export const webhooks = {
   test: (id: string, event: string) => request<{ success: boolean; status?: number; error?: string }>(`/webhook/${id}/test`, { method: 'POST', body: JSON.stringify({ event }) }),
 }
 
+// ─── Notification Channels ────────────────────────────────────────────────────
+
+export type NotificationChannel = 'EMAIL' | 'SMS' | 'WHATSAPP_UNOFFICIAL'
+
+export interface NotificationChannelConfig {
+  id: string
+  channel: NotificationChannel
+  settings: Record<string, unknown>
+  isActive: boolean
+}
+
+export const notificationChannels = {
+  list: () => request<NotificationChannelConfig[]>('/notification'),
+  upsert: (channel: NotificationChannel, settings: Record<string, unknown>, isActive: boolean) =>
+    request<NotificationChannelConfig>('/notification/config', {
+      method: 'POST',
+      body: JSON.stringify({ channel, settings, isActive }),
+    }),
+}
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const roles = {
