@@ -20,6 +20,7 @@ import { CustomerModule } from './modules/customer/customer.module'
 import { WebhookModule } from './modules/webhook/webhook.module'
 import { PaymentSettingsModule } from './modules/payment-settings/payment-settings.module'
 import { SystemPaymentSettingsModule } from './modules/system-payment-settings/system-payment-settings.module'
+import { SystemEmailModule } from './modules/system-email/system-email.module'
 import { TenantMiddleware } from './common/middleware/tenant.middleware'
 import { TenantResolver } from '@emas/tenancy'
 import { envSchema } from './config/env.schema'
@@ -54,6 +55,7 @@ import { envSchema } from './config/env.schema'
     WebhookModule,
     PaymentSettingsModule,
     SystemPaymentSettingsModule,
+    SystemEmailModule,
   ],
   providers: [TenantResolver],
 })

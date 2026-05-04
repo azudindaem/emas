@@ -422,6 +422,27 @@ export const notifyConfig = {
     }),
 }
 
+// ─── System Email ─────────────────────────────────────────────────────────────
+
+export interface SystemEmailConfig {
+  id?: string
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  pass: string
+  from: string
+  isEnabled: boolean
+}
+
+export const systemEmail = {
+  get: () => request<SystemEmailConfig | null>('/system-email'),
+  upsert: (data: SystemEmailConfig) =>
+    request<SystemEmailConfig>('/system-email', { method: 'PUT', body: JSON.stringify(data) }),
+  test: (to: string) =>
+    request<{ success: boolean }>('/system-email/test', { method: 'POST', body: JSON.stringify({ to }) }),
+}
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const roles = {

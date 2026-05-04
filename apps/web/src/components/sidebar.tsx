@@ -27,6 +27,7 @@ import {
   CreditCard,
   Wrench,
   ServerCog,
+  Mail,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -76,6 +77,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     { href: '/dashboard/system/settings', label: t.systemSettings?.title ?? 'System Settings', icon: Wrench },
     { href: '/dashboard/system/users', label: t.systemUsers?.title ?? 'User List', icon: Users },
     { href: '/dashboard/system/payment', label: t.systemPaymentSettings?.title ?? 'System Payment Gateway', icon: CreditCard },
+    { href: '/dashboard/system/email', label: 'System Email (SMTP)', icon: Mail },
     { href: '/dashboard/system/plan', label: t.systemPlan?.title ?? 'Plan', icon: CreditCard },
   ]
 
