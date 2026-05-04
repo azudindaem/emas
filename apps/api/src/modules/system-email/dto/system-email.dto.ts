@@ -18,8 +18,8 @@ export class UpsertSystemEmailDto {
   user: string
 
   @IsString()
-  @IsNotEmpty()
-  pass: string
+  @IsOptional()
+  pass?: string
 
   @IsString()
   @IsNotEmpty()

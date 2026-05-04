@@ -50,6 +50,7 @@ model Tenant {
   systemEmailConfig    SystemEmailConfig?
   notifyCredit         NotifyCredit?
   notifyConfig         NotifyConfig?
+  signupTacs           SignupTac[]
 
   @@index([slug])
 }
@@ -894,6 +895,24 @@ model SystemEmailConfig {
   updatedAt DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────
+// SIGNUP TAC (Email OTP for registration)
+// ─────────────────────────────────────────────────────────
+
+model SignupTac {
+  id        String   @id @default(uuid())
+  tenantId  String
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, email])
 }
 
 // ─────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards, Req } fro
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { AuthService } from './auth.service'
-import { LoginDto, RegisterDto, RefreshTokenDto } from './dto/auth.dto'
+import { LoginDto, RegisterDto, RefreshTokenDto, SendTacDto, VerifyTacDto } from './dto/auth.dto'
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
 import type { Request } from 'express'
@@ -16,6 +16,18 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto, @CurrentTenant() tenant: TenantContext) {
     return this.auth.login(dto, tenant.id)
+  }
+
+  @Post('send-tac')
+  @HttpCode(HttpStatus.OK)
+  sendTac(@Body() dto: SendTacDto, @CurrentTenant() tenant: TenantContext) {
+    return this.auth.sendTac(dto, tenant.id)
+  }
+
+  @Post('verify-tac')
+  @HttpCode(HttpStatus.OK)
+  verifyTac(@Body() dto: VerifyTacDto, @CurrentTenant() tenant: TenantContext) {
+    return this.auth.verifyTac(dto, tenant.id)
   }
 
   @Post('register')

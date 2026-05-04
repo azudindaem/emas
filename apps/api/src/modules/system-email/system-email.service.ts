@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { UpsertSystemEmailDto } from './dto/system-email.dto'
-import nodemailer from 'nodemailer'
+import * as nodemailer from 'nodemailer'
 
 @Injectable()
 export class SystemEmailService {
@@ -15,20 +15,25 @@ export class SystemEmailService {
   }
 
   async upsert(tenantId: string, dto: UpsertSystemEmailDto) {
-    const data = {
+    const base = {
       host: dto.host.trim(),
       port: dto.port,
       secure: dto.secure,
       user: dto.user.trim(),
-      pass: dto.pass,
       from: dto.from.trim(),
       isEnabled: dto.isEnabled,
     }
 
+    // If pass is blank, keep existing password (only update on create or when provided)
+    const existing = dto.pass?.trim()
+      ? null
+      : await this.prisma.systemEmailConfig.findUnique({ where: { tenantId }, select: { pass: true } })
+    const pass = dto.pass?.trim() || existing?.pass || ''
+
     const cfg = await this.prisma.systemEmailConfig.upsert({
       where: { tenantId },
-      create: { tenantId, ...data },
-      update: data,
+      create: { tenantId, ...base, pass },
+      update: { ...base, ...(dto.pass?.trim() ? { pass: dto.pass.trim() } : {}) },
     })
 
     return { ...cfg, pass: '••••••••' }

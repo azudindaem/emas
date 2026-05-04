@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'
+import * as nodemailer from 'nodemailer'
 import { PrismaService } from '../prisma/prisma.service'
-import type { LoginDto, RegisterDto } from './dto/auth.dto'
+import type { LoginDto, RegisterDto, SendTacDto, VerifyTacDto } from './dto/auth.dto'
 
 @Injectable()
 export class AuthService {
@@ -30,10 +31,89 @@ export class AuthService {
     }
   }
 
-  async register(dto: RegisterDto, tenantId: string) {
-    const exists = await this.prisma.user.findFirst({
-      where: { tenantId, email: dto.email },
+  async sendTac(dto: SendTacDto, tenantId: string) {
+    // Check email not already registered
+    const exists = await this.prisma.user.findFirst({ where: { tenantId, email: dto.email } })
+    if (exists) throw new ConflictException('Email sudah didaftarkan')
+
+    // Get system email config
+    const emailCfg = await this.prisma.systemEmailConfig.findUnique({ where: { tenantId } })
+    if (!emailCfg || !emailCfg.isEnabled) {
+      throw new BadRequestException('Sistem e-mel belum dikonfigurasi. Sila hubungi pentadbir.')
+    }
+
+    // Generate 6-digit TAC
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+    // Invalidate previous TAC for this email
+    await this.prisma.signupTac.updateMany({
+      where: { tenantId, email: dto.email, used: false },
+      data: { used: true },
     })
+
+    await this.prisma.signupTac.create({
+      data: { tenantId, email: dto.email, code, expiresAt },
+    })
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      host: emailCfg.host,
+      port: emailCfg.port,
+      secure: emailCfg.secure,
+      auth: { user: emailCfg.user, pass: emailCfg.pass },
+    })
+
+    try {
+      await transporter.sendMail({
+        from: emailCfg.from,
+        to: dto.email,
+        subject: 'Kod TAC Pendaftaran EMAS',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:12px;">
+            <h2 style="color:#1e293b;margin:0 0 8px">Kod Pengesahan (TAC)</h2>
+            <p style="color:#475569;margin:0 0 24px">Gunakan kod di bawah untuk melengkapkan pendaftaran anda. Kod ini sah selama <strong>10 minit</strong>.</p>
+            <div style="background:#fff;border:2px solid #f59e0b;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+              <span style="font-size:36px;font-weight:700;letter-spacing:12px;color:#1e293b;">${code}</span>
+            </div>
+            <p style="color:#94a3b8;font-size:12px;margin:0">Jika anda tidak meminta kod ini, abaikan e-mel ini.</p>
+          </div>
+        `,
+      })
+    } catch (err) {
+      throw new BadRequestException(`Gagal hantar e-mel: ${(err as Error).message}`)
+    }
+
+    return { sent: true, message: 'Kod TAC telah dihantar ke e-mel anda' }
+  }
+
+  async verifyTac(dto: VerifyTacDto, tenantId: string) {
+    const tac = await this.prisma.signupTac.findFirst({
+      where: { tenantId, email: dto.email, code: dto.code, used: false },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!tac) throw new BadRequestException('Kod TAC tidak sah')
+    if (tac.expiresAt < new Date()) throw new BadRequestException('Kod TAC telah tamat tempoh')
+
+    return { valid: true }
+  }
+
+  async register(dto: RegisterDto, tenantId: string) {
+    // Validate passwords match
+    if (dto.password !== dto.passwordConfirm) {
+      throw new BadRequestException('Kata laluan tidak sepadan')
+    }
+
+    // Verify TAC
+    const tac = await this.prisma.signupTac.findFirst({
+      where: { tenantId, email: dto.email, code: dto.tac, used: false },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!tac) throw new BadRequestException('Kod TAC tidak sah')
+    if (tac.expiresAt < new Date()) throw new BadRequestException('Kod TAC telah tamat tempoh')
+
+    const exists = await this.prisma.user.findFirst({ where: { tenantId, email: dto.email } })
     if (exists) throw new ConflictException('Email already registered')
 
     const passwordHash = crypto.createHash('sha256').update(dto.password).digest('hex')
@@ -41,58 +121,61 @@ export class AuthService {
     const membershipCount = await this.prisma.membership.count({ where: { tenantId } })
 
     const ownerRole =
-      (await this.prisma.role.findFirst({
-        where: { tenantId, name: 'Owner' },
-      })) ??
+      (await this.prisma.role.findFirst({ where: { tenantId, name: 'Owner' } })) ??
       (await this.prisma.role.create({
-        data: {
-          tenantId,
-          name: 'Owner',
-          level: 100,
-          permissions: ['*'],
-          isDefault: false,
-        },
+        data: { tenantId, name: 'Owner', level: 100, permissions: ['*'], isDefault: false },
       }))
 
     const defaultRole =
-      (await this.prisma.role.findFirst({
-        where: { tenantId, isDefault: true },
-      })) ??
+      (await this.prisma.role.findFirst({ where: { tenantId, isDefault: true } })) ??
       (await this.prisma.role.create({
-        data: {
-          tenantId,
-          name: 'Member',
-          level: 1,
-          permissions: ['order.read', 'product.read'],
-          isDefault: true,
-        },
+        data: { tenantId, name: 'Member', level: 1, permissions: ['order.read', 'product.read'], isDefault: true },
       }))
 
     const assignedRole = membershipCount === 0 ? ownerRole : defaultRole
 
     const user = await this.prisma.user.create({
-      data: {
-        tenantId,
-        name: dto.name,
-        email: dto.email,
-        passwordHash,
-      },
+      data: { tenantId, name: dto.name, email: dto.email, passwordHash },
     })
 
     await this.prisma.membership.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        roleId: assignedRole.id,
-        level: assignedRole.level,
-      },
+      data: { tenantId, userId: user.id, roleId: assignedRole.id, level: assignedRole.level },
     })
 
+    // Mark TAC as used
+    await this.prisma.signupTac.update({ where: { id: tac.id }, data: { used: true } })
+
+    // Send welcome email (non-blocking)
+    this.sendWelcomeEmail(tenantId, user.name, user.email).catch(() => null)
+
     const tokens = this.generateTokens(user.id, tenantId)
-    return {
-      ...tokens,
-      user: { id: user.id, name: user.name, email: user.email },
-    }
+    return { ...tokens, user: { id: user.id, name: user.name, email: user.email } }
+  }
+
+  private async sendWelcomeEmail(tenantId: string, name: string, email: string) {
+    const emailCfg = await this.prisma.systemEmailConfig.findUnique({ where: { tenantId } })
+    if (!emailCfg || !emailCfg.isEnabled) return
+
+    const transporter = nodemailer.createTransport({
+      host: emailCfg.host,
+      port: emailCfg.port,
+      secure: emailCfg.secure,
+      auth: { user: emailCfg.user, pass: emailCfg.pass },
+    })
+
+    await transporter.sendMail({
+      from: emailCfg.from,
+      to: email,
+      subject: 'Selamat Datang ke EMAS!',
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:12px;">
+          <h2 style="color:#1e293b;margin:0 0 8px">Selamat Datang, ${name}! 🎉</h2>
+          <p style="color:#475569;margin:0 0 16px">Akaun anda telah berjaya didaftarkan dalam sistem EMAS.</p>
+          <p style="color:#475569;margin:0 0 24px">Anda kini boleh log masuk dan mula menggunakan platform pengurusan perniagaan anda.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0">Terima kasih kerana memilih EMAS.</p>
+        </div>
+      `,
+    })
   }
 
   private generateTokens(userId: string, tenantId: string) {

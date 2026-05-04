@@ -42,7 +42,19 @@ async function request<T>(
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const auth = {
-  register: (data: { name: string; email: string; password: string }) =>
+  sendTac: (email: string) =>
+    request<{ sent: boolean; message: string }>('/auth/send-tac', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyTac: (email: string, code: string) =>
+    request<{ valid: boolean }>('/auth/verify-tac', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+
+  register: (data: { name: string; email: string; password: string; passwordConfirm: string; tac: string }) =>
     request<{ accessToken: string; user: Record<string, unknown> }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -437,8 +449,10 @@ export interface SystemEmailConfig {
 
 export const systemEmail = {
   get: () => request<SystemEmailConfig | null>('/system-email'),
-  upsert: (data: SystemEmailConfig) =>
-    request<SystemEmailConfig>('/system-email', { method: 'PUT', body: JSON.stringify(data) }),
+  upsert: (data: SystemEmailConfig) => {
+    const { host, port, secure, user, pass, from, isEnabled } = data
+    return request<SystemEmailConfig>('/system-email', { method: 'PUT', body: JSON.stringify({ host, port, secure, user, pass, from, isEnabled }) })
+  },
   test: (to: string) =>
     request<{ success: boolean }>('/system-email/test', { method: 'POST', body: JSON.stringify({ to }) }),
 }

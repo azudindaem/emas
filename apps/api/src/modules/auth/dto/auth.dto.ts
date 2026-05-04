@@ -19,6 +19,26 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password: string
+
+  @IsString()
+  @MinLength(8)
+  passwordConfirm: string
+
+  @IsString()
+  tac: string
+}
+
+export class SendTacDto {
+  @IsEmail()
+  email: string
+}
+
+export class VerifyTacDto {
+  @IsEmail()
+  email: string
+
+  @IsString()
+  code: string
 }
 
 export class RefreshTokenDto {
