@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Patch, Post, Body, UseGuards, Req, Param } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { TenantService, type SystemMode } from './tenant.service'
@@ -37,6 +37,52 @@ export class TenantController {
   @Get('subscription')
   async getSubscription(@CurrentTenant() tenant: TenantContext): Promise<Record<string, unknown>> {
     return this.tenantService.getSubscription(tenant.id)
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), OwnerGuard)
+  @Get('subscription/plans')
+  async listPlans(): Promise<Record<string, unknown>[]> {
+    return this.tenantService.listPlans()
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), OwnerGuard)
+  @Post('subscription/plans')
+  async createPlan(
+    @Body()
+    body: {
+      code: string
+      name: string
+      priceMonthly: number
+      priceYearly: number
+      maxUsers?: number
+      maxOrders?: number
+      maxProducts?: number
+      isActive?: boolean
+    },
+  ): Promise<Record<string, unknown>> {
+    return this.tenantService.createPlan(body)
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), OwnerGuard)
+  @Patch('subscription/plans/:id')
+  async updatePlan(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      code?: string
+      name?: string
+      priceMonthly?: number
+      priceYearly?: number
+      maxUsers?: number
+      maxOrders?: number
+      maxProducts?: number
+      isActive?: boolean
+    },
+  ): Promise<Record<string, unknown>> {
+    return this.tenantService.updatePlan(id, body)
   }
 
   @ApiBearerAuth()

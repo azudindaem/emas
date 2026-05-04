@@ -8,6 +8,10 @@ interface User {
   id: string
   name: string
   email: string
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
+  avatarUrl?: string | null
   role: {
     name: string
     level: number
@@ -23,6 +27,7 @@ interface AuthContextType {
   isSystemOwner: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  refreshMe: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -44,18 +49,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  async function login(email: string, password: string) {
-    const res = await auth.login({ email, password })
-    setToken(res.accessToken)
+  async function refreshMe() {
     const meData = await auth.me()
     const u: User = {
       id: meData.id,
       name: meData.name,
       email: meData.email,
+      firstName: meData.firstName,
+      lastName: meData.lastName,
+      phone: meData.phone,
+      avatarUrl: meData.avatarUrl,
       role: meData.role,
     }
     localStorage.setItem('emas_user', JSON.stringify(u))
     setUser(u)
+  }
+
+  async function login(email: string, password: string) {
+    const res = await auth.login({ email, password })
+    setToken(res.accessToken)
+    await refreshMe()
   }
 
   function logout() {
@@ -64,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login'
   }
 
-  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, isSystemOwner: user?.role?.isSystemOwner ?? false, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
+  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, isSystemOwner: user?.role?.isSystemOwner ?? false, login, logout, refreshMe }}>{children}</AuthContext.Provider></LocaleProvider>
 }
 
 export function useAuth() {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
+import { useLocale } from '@/lib/locale'
 import { systemUsers } from '@/lib/api'
 import { Loader2, Users, ShieldCheck } from 'lucide-react'
 
@@ -22,6 +23,8 @@ type Role = {
 }
 
 export default function SystemUsersPage() {
+  const { t } = useLocale()
+  const u = t.systemUsers
   const { isSystemOwner, loading: authLoading } = useAuth()
   const router = useRouter()
 
@@ -69,8 +72,8 @@ export default function SystemUsersPage() {
           <Users className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User List</h1>
-          <p className="text-sm text-gray-500">Manage all users and their roles in this tenant</p>
+          <h1 className="text-2xl font-bold text-gray-900">{u.title}</h1>
+          <p className="text-sm text-gray-500">{u.subtitle}</p>
         </div>
       </div>
 
@@ -78,7 +81,7 @@ export default function SystemUsersPage() {
         <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-gray-400" />
-            <span className="font-semibold text-gray-800">Members</span>
+            <span className="font-semibold text-gray-800">{u.members}</span>
             <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{members.length}</span>
           </div>
         </div>
@@ -87,17 +90,17 @@ export default function SystemUsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-3 text-left font-medium text-gray-500">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500">Email</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500">Role</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500">Joined</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">{u.columns.name}</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">{u.columns.email}</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">{u.columns.status}</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">{u.columns.role}</th>
+                <th className="px-6 py-3 text-left font-medium text-gray-500">{u.columns.joined}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-gray-400">No users found</td>
+                  <td colSpan={5} className="px-6 py-10 text-center text-gray-400">{u.noUsers}</td>
                 </tr>
               ) : members.map((m) => (
                 <tr key={m.id} className="hover:bg-gray-50 transition-colors">

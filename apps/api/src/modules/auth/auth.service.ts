@@ -135,6 +135,10 @@ export class AuthService {
       id: membership.user.id,
       name: membership.user.name,
       email: membership.user.email,
+      firstName: membership.user.firstName,
+      lastName: membership.user.lastName,
+      phone: membership.user.phone,
+      avatarUrl: membership.user.avatarUrl,
       role: {
         name: membership.role.name,
         level: membership.role.level,

@@ -57,7 +57,72 @@ export const auth = {
     }),
 
   me: () =>
-    request<{ id: string; name: string; email: string; role: { name: string; level: number; isOwner: boolean; isSystemOwner: boolean } }>('/auth/me'),
+    request<{
+      id: string
+      name: string
+      email: string
+      firstName?: string | null
+      lastName?: string | null
+      phone?: string | null
+      avatarUrl?: string | null
+      role: { name: string; level: number; isOwner: boolean; isSystemOwner: boolean }
+    }>('/auth/me'),
+}
+
+export const systemPaymentSettings = {
+  listAll: () => request<{ gateway: string; isEnabled: boolean; config: Record<string, unknown> }[]>('/system-payment-settings'),
+  getOne: (gateway: string) =>
+    request<{ gateway: string; isEnabled: boolean; config: Record<string, unknown> }>(`/system-payment-settings/${gateway}`),
+  upsert: (gateway: string, data: { isEnabled: boolean; config: Record<string, unknown> }) =>
+    request<unknown>(`/system-payment-settings/${gateway}`, { method: 'PUT', body: JSON.stringify(data) }),
+  fetchChipPublicKey: (secretKey: string, environment: string = 'production') =>
+    request<{ publicKey: string }>('/system-payment-settings/chip/public-key', {
+      method: 'POST',
+      body: JSON.stringify({ secretKey, environment }),
+    }),
+}
+
+export type UserProfile = {
+  id: string
+  email: string
+  displayName: string
+  firstName: string | null
+  lastName: string | null
+  phone: string | null
+  avatarUrl: string | null
+  icNumber: string | null
+  dateOfBirth: string | null
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null
+  addressLine1: string | null
+  addressLine2: string | null
+  postalCode: string | null
+  city: string | null
+  state: string | null
+  country: string | null
+}
+
+export const userProfile = {
+  get: () => request<UserProfile>('/user/profile'),
+  update: (data: Partial<UserProfile>) =>
+    request<UserProfile>('/user/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  uploadAvatar: async (file: File): Promise<{ url: string }> => {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/upload/profile', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+      throw new Error(err.error ?? 'Upload failed')
+    }
+    return res.json()
+  },
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -313,6 +378,18 @@ export const paymentSettings = {
 
 export type SystemMode = 'ACTIVE' | 'MAINTENANCE'
 
+export type SystemPlan = {
+  id: string
+  code: string
+  name: string
+  priceMonthly: number
+  priceYearly: number
+  maxUsers: number
+  maxOrders: number
+  maxProducts: number
+  isActive: boolean
+}
+
 export const systemSettings = {
   getMode: () => request<{ mode: SystemMode }>('/tenant/system-mode'),
   setMode: (mode: SystemMode) =>
@@ -324,6 +401,17 @@ export const systemSettings = {
     currentPeriodEnd: string
     plan: { name: string; code: string; priceMonthly: number; priceYearly: number; maxUsers: number; maxOrders: number; maxProducts: number }
   } | Record<string, never>>('/tenant/subscription'),
+  listPlans: () => request<SystemPlan[]>('/tenant/subscription/plans'),
+  createPlan: (data: Omit<SystemPlan, 'id'>) =>
+    request<SystemPlan>('/tenant/subscription/plans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updatePlan: (id: string, data: Partial<Omit<SystemPlan, 'id'>>) =>
+    request<SystemPlan>(`/tenant/subscription/plans/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 }
 
 export const systemUsers = {

@@ -19,6 +19,7 @@ import { RoleModule } from './modules/role/role.module'
 import { CustomerModule } from './modules/customer/customer.module'
 import { WebhookModule } from './modules/webhook/webhook.module'
 import { PaymentSettingsModule } from './modules/payment-settings/payment-settings.module'
+import { SystemPaymentSettingsModule } from './modules/system-payment-settings/system-payment-settings.module'
 import { TenantMiddleware } from './common/middleware/tenant.middleware'
 import { TenantResolver } from '@emas/tenancy'
 import { envSchema } from './config/env.schema'
@@ -52,6 +53,7 @@ import { envSchema } from './config/env.schema'
     CustomerModule,
     WebhookModule,
     PaymentSettingsModule,
+    SystemPaymentSettingsModule,
   ],
   providers: [TenantResolver],
 })

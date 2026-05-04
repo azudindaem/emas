@@ -98,7 +98,7 @@ export default function SystemSettingsPage() {
             </div>
             {mode === 'ACTIVE' && (
               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                <CheckCircle2 className="h-3 w-3" /> Aktif
+                <CheckCircle2 className="h-3 w-3" /> {s.modeLive}
               </span>
             )}
           </button>
@@ -121,7 +121,7 @@ export default function SystemSettingsPage() {
             </div>
             {mode === 'MAINTENANCE' && (
               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-                <Wrench className="h-3 w-3" /> Penyelenggaraan
+                <Wrench className="h-3 w-3" /> {s.modeMaintenance}
               </span>
             )}
           </button>

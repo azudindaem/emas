@@ -22,9 +22,11 @@
 | Background Jobs | BullMQ + Redis |
 | Database | PostgreSQL 16 + Prisma ORM |
 | Cache | Redis |
+| Auth | JWT + Refresh Token + RBAC |
 | Container | Docker + Docker Compose |
 | CI/CD | GitHub Actions |
 | CDN / Edge | Cloudflare |
+| File Storage | Local / S3-compatible |
 
 ---
 
@@ -32,8 +34,8 @@
 
 ```
 apps/
-├── api/        NestJS REST API
-├── web/        Next.js frontend
+├── api/        NestJS REST API (port 8001)
+├── web/        Next.js 15 frontend (port 3000)
 └── worker/     BullMQ background processors
 
 packages/
@@ -41,6 +43,59 @@ packages/
 ├── tenancy/    Tenant resolver & branding loader
 └── sdk/        Typed API fetch client
 ```
+
+---
+
+## Implementation Status
+
+### Phase 1 — Core MVP ✅ Complete
+
+| Module | API | UI | Status |
+|---|---|---|---|
+| Auth (register/login/JWT) | ✅ | ✅ | Done |
+| Order Management (CRUD, status workflow) | ✅ | ✅ | Done |
+| Order Creation (full form, variations) | ✅ | ✅ | Done |
+| Product + Variations + SKU | ✅ | ✅ | Done |
+| Inventory (stock, reserved, movement log) | ✅ | ✅ | Done |
+| Team Management + RBAC | ✅ | ✅ | Done |
+| Customer Management | ✅ | ✅ | Done |
+| Invoice Generation (seller + customer) | ✅ | ✅ | Done |
+| Role Management | ✅ | ✅ | Done |
+| User Profile (editable + avatar upload) | ✅ | ✅ | Done |
+| Tenant Payment Settings | ✅ | ✅ | Done |
+| Shipping Settings | ✅ | ✅ | Done |
+| Brand Management | ✅ | ✅ | Done |
+| Coupon / Discount System | ✅ | ✅ | Done |
+
+### Phase 2 — Courier Integration 🟡 In Progress
+
+| Module | API | UI | Status |
+|---|---|---|---|
+| Courier Account Management | ✅ | ✅ | API + UI ready |
+| AWB Generation | ✅ | 🟡 | API ready, UI partial |
+| Bulk AWB Creation | ✅ | ❌ | API ready |
+| Label Printing (PDF) | ✅ | ❌ | API ready |
+| Shipment Tracking | ✅ | 🟡 | API ready |
+| Shipping Zones + Rates | ✅ | ✅ | Done |
+
+### Phase 3 — Commission + Wallet 🟡 In Progress
+
+| Module | API | UI | Status |
+|---|---|---|---|
+| Commission Rules CRUD | ✅ | 🟡 | API done, UI list-only |
+| Commission Calculation | ✅ | ❌ | API ready |
+| Commission Payout Flow | ❌ | ❌ | Pending |
+| Wallet Accounts + Transactions | ✅ | ✅ | Done |
+| Wallet Top-up / Transfer UI | ✅ | ❌ | UI pending |
+
+### System Admin Modules ✅ Complete
+
+| Module | API | UI | Status |
+|---|---|---|---|
+| System Settings | ✅ | ✅ | Done |
+| System User List | ✅ | ✅ | Done |
+| System Subscription Plans (CRUD) | ✅ | ✅ | Done |
+| System Payment Gateway Config | ✅ | ✅ | Done |
 
 ---
 
@@ -53,11 +108,13 @@ packages/
 - **Commission System** — 7 types: sales, recruitment, channel, network, point, same-level, bonus
 - **Wallet System** — internal wallet, transfers, reload, payout via Billplz
 - **Courier Integration** — 9 providers: Ninjavan, POS Malaysia, J&T, DHL, Flash, GDEX, Skynet, Airpak
-- **Payment Gateways** — 10+: CHIP, Billplz, ToyyibPay, Stripe, HitPay, Atome, and more
-- **Notifications** — Email, SMS, WhatsApp Official (WABA), WhatsApp Unofficial
+- **Payment Gateways** — 10+: CHIP, Billplz, ToyyibPay, Stripe, HitPay, Atome, AhaPay, BayrCash, and more
+- **Notifications** — Email, SMS, WhatsApp Official (WABA), WhatsApp Unofficial, Webhook
 - **RBAC** — unlimited custom roles, 1-15 user levels, KPI-based auto role upgrade/downgrade
 - **Brand Management** — multi-brand per tenant, separate payment collection, custom AWB
 - **Analytics** — real-time ranking, KPI metrics, ROI/ROAS, export CSV/Excel
+- **System Admin Panel** — owner-only: manage plans, users, system payment gateways, settings
+- **i18n** — full Bahasa Malaysia + English across all modules
 
 ---
 
@@ -134,14 +191,17 @@ This triggers the production deploy workflow with manual approval gate.
 
 ## Database Schema
 
-29+ models covering full SaaS platform:
+35+ Prisma models covering full SaaS platform:
 
 - **Tenant layer**: `Tenant`, `TenantDomain`, `TenantBranding`, `Plan`, `Subscription`, `FeatureFlag`
-- **Users & Access**: `User`, `Membership`, `Role`
+- **Users & Access**: `User` (with full profile fields + Gender enum), `Membership`, `Role`, `RoleAutomation`
 - **Products**: `Product`, `ProductVariation`, `Warehouse`, `ProductStock`, `StockMovement`
 - **Orders**: `Order`, `OrderItem`, `OrderShipment`, `OrderPayment`, `Invoice`
-- **Commerce**: `CourierAccount`, `Wallet`, `WalletTransaction`, `CommissionRule`
-- **Platform**: `Brand`, `NotificationConfig`, `AuditLog`
+- **Shipping**: `CourierAccount`, `ShippingZone`, `ShippingRate`, `ShippingDefaultSetting`
+- **Commerce**: `Wallet`, `WalletTransaction`, `CommissionRule`, `Coupon`, `CouponUsage`
+- **Platform**: `Brand`, `NotificationConfig`, `AuditLog`, `Webhook`
+- **Payments**: `PaymentGatewayConfig`, `SystemPaymentGatewayConfig`
+- **Customers**: `Customer`
 
 ---
 

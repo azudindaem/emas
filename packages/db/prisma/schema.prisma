@@ -46,6 +46,7 @@ model Tenant {
   customers    Customer[]
   webhooks     Webhook[]
   paymentGatewayConfigs PaymentGatewayConfig[]
+  systemPaymentGatewayConfigs SystemPaymentGatewayConfig[]
 
   @@index([slug])
 }
@@ -131,9 +132,21 @@ model User {
   tenantId      String
   email         String
   name          String
+  firstName     String?
+  lastName      String?
   passwordHash  String
   phone         String?
   avatarUrl     String?
+  icNumber      String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  addressLine1  String?
+  addressLine2  String?
+  postalCode    String?
+  city          String?
+  state         String?
+  country       String?
+  bio           String?  @db.Text
   emailVerifiedAt DateTime?
   status        UserStatus @default(ACTIVE)
   createdAt     DateTime @default(now())
@@ -548,6 +561,21 @@ model PaymentGatewayConfig {
   @@index([tenantId])
 }
 
+model SystemPaymentGatewayConfig {
+  id        String   @id @default(uuid())
+  tenantId  String
+  gateway   String   // GENERAL, CHIP, STRIPE, AHAPAY, BILLPLZ, BAYARCASH, TOYYIBPAY
+  config    Json
+  isEnabled Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, gateway])
+  @@index([tenantId])
+}
+
 // ─────────────────────────────────────────────────────────
 // AUDIT LOG
 // ─────────────────────────────────────────────────────────
@@ -600,6 +628,12 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   BANNED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 enum ProductStatus {

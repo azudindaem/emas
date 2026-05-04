@@ -67,14 +67,16 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   ]
 
   const settingsSubItems = [
+    { href: '/dashboard/settings/profile', label: t.settings?.profile?.title ?? 'Profile', icon: User },
     { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
     { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
   ]
 
   const systemSubItems = [
     { href: '/dashboard/system/settings', label: t.systemSettings?.title ?? 'System Settings', icon: Wrench },
-    { href: '/dashboard/system/users', label: 'User List', icon: Users },
-    { href: '/dashboard/system/plan', label: 'Plan', icon: CreditCard },
+    { href: '/dashboard/system/users', label: t.systemUsers?.title ?? 'User List', icon: Users },
+    { href: '/dashboard/system/payment', label: t.systemPaymentSettings?.title ?? 'System Payment Gateway', icon: CreditCard },
+    { href: '/dashboard/system/plan', label: t.systemPlan?.title ?? 'Plan', icon: CreditCard },
   ]
 
   const subLink = (href: string, label: string, Icon: React.ElementType) => {
@@ -139,7 +141,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         <div>
           {collapsed ? (
             <Link
-              href="/dashboard/settings/shipping"
+              href="/dashboard/settings/profile"
               title={t.nav.settings}
               className={`flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isSettingsActive ? 'bg-primary/20 text-black font-semibold border border-primary/60' : 'text-slate-700 hover:bg-orange-50 hover:text-black'
@@ -188,7 +190,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                   className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSystemActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700 hover:bg-orange-50'}`}
                 >
                   <ServerCog size={18} />
-                  <span>System</span>
+                  <span>{t.nav.system}</span>
                   <ChevronDown size={14} className={`ml-auto transition-transform ${isSystemOpen ? 'rotate-0' : '-rotate-90'}`} />
                 </button>
                 {isSystemOpen && (

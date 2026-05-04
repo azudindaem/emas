@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator'
+import { IsArray, IsDateString, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator'
 
 export class CreateRoleDto {
   @IsString()
@@ -20,4 +20,75 @@ export class AssignRoleDto {
   @IsString()
   @IsNotEmpty()
   roleId: string
+}
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  displayName?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  firstName?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  lastName?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phone?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  avatarUrl?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  icNumber?: string
+
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string
+
+  @IsOptional()
+  @IsIn(['MALE', 'FEMALE', 'OTHER'])
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  addressLine1?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  addressLine2?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  postalCode?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  state?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  country?: string
+
 }

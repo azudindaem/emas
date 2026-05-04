@@ -1,12 +1,13 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { UserService } from './user.service'
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
-import { AssignRoleDto, CreateRoleDto } from './dto/user.dto'
+import { AssignRoleDto, CreateRoleDto, UpdateProfileDto } from './dto/user.dto'
 import { RbacGuard } from '../../common/guards/rbac.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
+import type { Request } from 'express'
 
 @ApiTags('user')
 @ApiBearerAuth()
@@ -14,6 +15,27 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('profile')
+  async getProfile(
+    @CurrentTenant() tenant: TenantContext,
+    @Req() req: Request & { user?: { userId: string } },
+  ) {
+    const profile = await this.userService.getProfile(tenant.id, req.user!.userId)
+    if (!profile) throw new NotFoundException('User profile not found')
+    return profile
+  }
+
+  @Patch('profile')
+  async updateProfile(
+    @CurrentTenant() tenant: TenantContext,
+    @Req() req: Request & { user?: { userId: string } },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    const profile = await this.userService.updateProfile(tenant.id, req.user!.userId, dto)
+    if (!profile) throw new NotFoundException('User profile not found')
+    return profile
+  }
 
   @Get('members')
   @UseGuards(RbacGuard)
