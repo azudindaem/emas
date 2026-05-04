@@ -24,17 +24,18 @@ export class PaymentSettingsController {
   }
 
   @Put(':gateway')
-  upsert(
+  async upsert(
     @CurrentTenant() tenant: TenantContext,
     @Param('gateway') gateway: string,
     @Body() dto: UpsertPaymentGatewayDto,
   ) {
-    return this.service.upsert(tenant.id, gateway, dto)
+    await this.service.upsert(tenant.id, gateway, dto)
+    return { success: true }
   }
 
   @Post('chip/public-key')
   fetchChipPublicKey(@Body() dto: FetchChipPublicKeyDto): Promise<{ publicKey: string }> {
-    return this.service.fetchChipPublicKey(dto.brandId, dto.environment ?? 'production')
+    return this.service.fetchChipPublicKey(dto.secretKey, dto.environment ?? 'production')
       .then((publicKey) => ({ publicKey }))
   }
 }

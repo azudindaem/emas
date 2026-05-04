@@ -291,9 +291,9 @@ export const paymentSettings = {
     request<{ gateway: string; isEnabled: boolean; config: Record<string, unknown> }>(`/payment-settings/${gateway}`),
   upsert: (gateway: string, data: { isEnabled: boolean; config: Record<string, unknown> }) =>
     request<unknown>(`/payment-settings/${gateway}`, { method: 'PUT', body: JSON.stringify(data) }),
-  fetchChipPublicKey: (brandId: string, environment: string) =>
+  fetchChipPublicKey: (secretKey: string, environment: string) =>
     request<{ publicKey: string }>('/payment-settings/chip/public-key', {
       method: 'POST',
-      body: JSON.stringify({ brandId, environment }),
+      body: JSON.stringify({ secretKey, environment }),
     }),
 }

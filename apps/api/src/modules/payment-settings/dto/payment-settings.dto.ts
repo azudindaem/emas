@@ -10,7 +10,7 @@ export class UpsertPaymentGatewayDto {
 
 export class FetchChipPublicKeyDto {
   @IsString()
-  brandId: string
+  secretKey: string
 
   @IsOptional()
   @IsString()

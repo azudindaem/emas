@@ -170,7 +170,11 @@ export default function PaymentSettingsPage() {
             next[g] = {
               isEnabled: item.isEnabled,
               config: Object.fromEntries(
-                Object.entries(item.config).map(([k, v]) => [k, String(v ?? '')]),
+                Object.entries(item.config).map(([k, v]) => {
+                  const str = String(v ?? '')
+                  // Normalize literal \n to real newlines (e.g. PEM keys stored from older format)
+                  return [k, str.replace(/\\n/g, '\n')]
+                }),
               ),
             }
           }
@@ -219,15 +223,15 @@ export default function PaymentSettingsPage() {
   }
 
   async function handleFetchChipPublicKey() {
-    const brandId = states.CHIP.config.brand_id ?? ''
+    const secretKey = states.CHIP.config.secret_key ?? ''
     const environment = states.CHIP.config.environment ?? 'production'
-    if (!brandId) {
-      showToast('error', 'Sila isi Brand ID dahulu')
+    if (!secretKey) {
+      showToast('error', 'Sila isi Secret Key dahulu')
       return
     }
     setFetchingKey(true)
     try {
-      const { publicKey } = await paymentSettings.fetchChipPublicKey(brandId, environment)
+      const { publicKey } = await paymentSettings.fetchChipPublicKey(secretKey, environment)
       setStates((prev) => ({
         ...prev,
         CHIP: { ...prev.CHIP, config: { ...prev.CHIP.config, public_key: publicKey } },

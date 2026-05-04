@@ -65,11 +65,11 @@ export class PaymentSettingsService {
     })
   }
 
-  async fetchChipPublicKey(brandId: string, environment: string): Promise<string> {
-    if (!brandId) throw new BadRequestException('brand_id is required to fetch public key')
+  async fetchChipPublicKey(secretKey: string, environment: string): Promise<string> {
+    if (!secretKey) throw new BadRequestException('secret_key is required to fetch public key')
     const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
     const res = await fetch(`${baseUrl}/api/v1/public_key/`, {
-      headers: { Authorization: `Bearer ${brandId}` },
+      headers: { Authorization: `Bearer ${secretKey}` },
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -77,8 +77,11 @@ export class PaymentSettingsService {
     }
     const data = await res.json() as { public_key?: string } | string
     // CHIP may return { public_key: '...' } or raw PEM string
-    if (typeof data === 'string') return data
-    if (typeof data === 'object' && data !== null && 'public_key' in data) return String(data.public_key)
-    throw new BadRequestException('Unexpected response from CHIP API')
+    let key: string
+    if (typeof data === 'string') key = data
+    else if (typeof data === 'object' && data !== null && 'public_key' in data) key = String(data.public_key)
+    else throw new BadRequestException('Unexpected response from CHIP API')
+    // Normalize literal \n escape sequences to real newlines
+    return key.replace(/\\n/g, '\n')
   }
 }
