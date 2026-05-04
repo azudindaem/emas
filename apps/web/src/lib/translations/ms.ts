@@ -843,6 +843,9 @@ const ms = {
     feeTypeFixed: 'Amaun Tetap (RM)',
     feeAmount: 'Amaun Yuran',
     feeAmountHint: 'Masukkan peratusan (cth. 2.5) atau amaun tetap dalam RM',
+    defaultGateway: 'Gateway Pembayaran Lalai',
+    defaultGatewayHint: 'Gateway yang digunakan semasa jana pautan bayaran untuk invois pelanggan',
+    defaultGatewayNone: '— Tidak ditetapkan —',
     // CHIP
     chipTitle: 'Konfigurasi CHIP',
     chipSubtitle: 'Sambungkan akaun CHIP Collect anda untuk pembayaran dalam talian',

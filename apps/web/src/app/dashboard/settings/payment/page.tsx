@@ -298,19 +298,25 @@ export default function PaymentSettingsPage() {
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === key
-                ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        {tabs.map(({ key, label }) => {
+          const isDefault = key !== 'GENERAL' && states.GENERAL.config.defaultGateway === key
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`relative px-4 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                activeTab === key
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+              {isDefault && (
+                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700">Default</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {loading ? (
@@ -395,6 +401,23 @@ export default function PaymentSettingsPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
                     <p className="text-xs text-gray-400 mt-1">{p.feeAmountHint}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{p.defaultGateway}</label>
+                    <select
+                      value={current.config.defaultGateway ?? ''}
+                      onChange={(e) => setField('defaultGateway', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    >
+                      <option value="">{p.defaultGatewayNone}</option>
+                      <option value="CHIP">CHIP</option>
+                      <option value="STRIPE">Stripe</option>
+                      <option value="AHAPAY">AhaPay</option>
+                      <option value="BILLPLZ">Billplz</option>
+                      <option value="BAYARCASH">Bayarcash</option>
+                      <option value="TOYYIBPAY">ToyyibPay</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">{p.defaultGatewayHint}</p>
                   </div>
                 </>
               )}

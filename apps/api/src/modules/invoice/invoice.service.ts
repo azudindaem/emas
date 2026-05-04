@@ -108,6 +108,18 @@ export class InvoiceService {
       throw new BadRequestException('Only CUSTOMER invoice can generate payment link')
     }
 
+    // Determine which gateway to use based on GENERAL defaultGateway setting
+    const generalConfig = await this.prisma.paymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'GENERAL' } },
+    })
+    const generalCfg = (generalConfig?.config ?? {}) as Record<string, unknown>
+    const defaultGateway = String(generalCfg.defaultGateway ?? 'CHIP').toUpperCase() || 'CHIP'
+
+    // Only CHIP is currently supported; extend here for other gateways
+    if (defaultGateway !== 'CHIP') {
+      throw new BadRequestException(`Payment gateway "${defaultGateway}" is not yet supported. Please set default to CHIP in Payment Settings.`)
+    }
+
     const chip = await this.prisma.paymentGatewayConfig.findUnique({
       where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
     })

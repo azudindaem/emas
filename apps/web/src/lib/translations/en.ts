@@ -845,6 +845,9 @@ const en: Translations = {
     feeTypeFixed: 'Fixed Amount (RM)',
     feeAmount: 'Fee Amount',
     feeAmountHint: 'Enter percentage (e.g. 2.5) or fixed amount in RM',
+    defaultGateway: 'Default Payment Gateway',
+    defaultGatewayHint: 'Gateway used when generating payment links for customer invoices',
+    defaultGatewayNone: '— Not set —',
     // CHIP
     chipTitle: 'CHIP Configuration',
     chipSubtitle: 'Connect your CHIP Collect account for online payments',
