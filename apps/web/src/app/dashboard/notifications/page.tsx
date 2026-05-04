@@ -20,7 +20,6 @@ import {
   MessageSquare,
   MessageCircle,
   Save,
-  Settings,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -379,7 +378,6 @@ export default function NotificationsPage() {
   const [channelConfigs, setChannelConfigs] = useState<Record<string, NotificationChannelConfig>>({})
   const [channelLoading, setChannelLoading] = useState(false)
   const [channelSaving, setChannelSaving] = useState<string | null>(null)
-  const [expandedChannel, setExpandedChannel] = useState<string | null>(null)
 
   // Email form
   const [emailForm, setEmailForm] = useState({ host: '', port: '587', secure: false, user: '', pass: '', from: '' })
@@ -436,7 +434,6 @@ export default function NotificationsPage() {
       const cfg = await notificationChannels.upsert(channel, settings, isActive)
       setChannelConfigs((prev) => ({ ...prev, [channel]: cfg }))
       showToast(nt.saveSuccess)
-      setExpandedChannel(null)
     } catch {
       showToast(nt.saveFail, 'error')
     } finally {
@@ -619,7 +616,13 @@ export default function NotificationsPage() {
           ) : (
             <div className="space-y-3">
 
-              {(activeChannelTab === 'channel' || activeChannelTab === 'emasNotify') && (
+              {activeChannelTab === 'channel' && (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                  Ruangan ini dikhaskan untuk info dashboard channel. Buat masa ini, pilih tab channel di atas untuk terus configure detail.
+                </div>
+              )}
+
+              {activeChannelTab === 'emasNotify' && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
@@ -641,7 +644,7 @@ export default function NotificationsPage() {
               )}
 
               {/* ── Email ─────────────────────────────────────────── */}
-              {(activeChannelTab === 'channel' || activeChannelTab === 'email') && (
+              {activeChannelTab === 'email' && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -670,22 +673,13 @@ export default function NotificationsPage() {
                         {channelSaving === 'EMAIL' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['EMAIL']?.isActive ? nt.disable : nt.enable}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setExpandedChannel(expandedChannel === 'EMAIL' ? null : 'EMAIL')}
-                      className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                    >
-                      <Settings size={12} />
-                      {nt.configure}
-                    </button>
                   </div>
                 </div>
 
-                {expandedChannel === 'EMAIL' && (
-                  <form
-                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
-                    onSubmit={(e) => { e.preventDefault(); saveChannel('EMAIL', { host: emailForm.host, port: Number(emailForm.port), secure: emailForm.secure, user: emailForm.user, pass: emailForm.pass, from: emailForm.from }, channelConfigs['EMAIL']?.isActive ?? true) }}
-                  >
+                <form
+                  className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                  onSubmit={(e) => { e.preventDefault(); saveChannel('EMAIL', { host: emailForm.host, port: Number(emailForm.port), secure: emailForm.secure, user: emailForm.user, pass: emailForm.pass, from: emailForm.from }, channelConfigs['EMAIL']?.isActive ?? true) }}
+                >
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="mb-1 block text-xs font-medium text-slate-600">{ct.email.host}</label>
@@ -718,13 +712,12 @@ export default function NotificationsPage() {
                         {t.common.save}
                       </button>
                     </div>
-                  </form>
-                )}
+                </form>
               </div>
               )}
 
               {/* ── SMS ───────────────────────────────────────────── */}
-              {(activeChannelTab === 'channel' || activeChannelTab === 'sms') && (
+              {activeChannelTab === 'sms' && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -748,18 +741,13 @@ export default function NotificationsPage() {
                         {channelSaving === 'SMS' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['SMS']?.isActive ? nt.disable : nt.enable}
                       </button>
                     )}
-                    <button type="button" onClick={() => setExpandedChannel(expandedChannel === 'SMS' ? null : 'SMS')} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
-                      <Settings size={12} />
-                      {nt.configure}
-                    </button>
                   </div>
                 </div>
 
-                {expandedChannel === 'SMS' && (
-                  <form
-                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
-                    onSubmit={(e) => { e.preventDefault(); saveChannel('SMS', { provider: smsForm.provider, apiKey: smsForm.apiKey, apiPassword: smsForm.apiPassword, senderId: smsForm.senderId }, channelConfigs['SMS']?.isActive ?? true) }}
-                  >
+                <form
+                  className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                  onSubmit={(e) => { e.preventDefault(); saveChannel('SMS', { provider: smsForm.provider, apiKey: smsForm.apiKey, apiPassword: smsForm.apiPassword, senderId: smsForm.senderId }, channelConfigs['SMS']?.isActive ?? true) }}
+                >
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">{ct.sms.provider}</label>
                       <select value={smsForm.provider} onChange={(e) => setSmsForm((f) => ({ ...f, provider: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
@@ -788,12 +776,11 @@ export default function NotificationsPage() {
                         {t.common.save}
                       </button>
                     </div>
-                  </form>
-                )}
+                </form>
               </div>
               )}
 
-              {(activeChannelTab === 'channel' || activeChannelTab === 'whatsapp') && (
+              {activeChannelTab === 'whatsapp' && (
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700">
@@ -808,7 +795,7 @@ export default function NotificationsPage() {
               )}
 
               {/* ── Wsapme ────────────────────────────────────────── */}
-              {(activeChannelTab === 'channel' || activeChannelTab === 'wsapme') && (
+              {activeChannelTab === 'wsapme' && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -832,18 +819,13 @@ export default function NotificationsPage() {
                         {channelSaving === 'WHATSAPP_UNOFFICIAL' ? <Loader2 size={12} className="animate-spin" /> : channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ? nt.disable : nt.enable}
                       </button>
                     )}
-                    <button type="button" onClick={() => setExpandedChannel(expandedChannel === 'WHATSAPP_UNOFFICIAL' ? null : 'WHATSAPP_UNOFFICIAL')} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
-                      <Settings size={12} />
-                      {nt.configure}
-                    </button>
                   </div>
                 </div>
 
-                {expandedChannel === 'WHATSAPP_UNOFFICIAL' && (
-                  <form
-                    className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
-                    onSubmit={(e) => { e.preventDefault(); saveChannel('WHATSAPP_UNOFFICIAL', { apiUrl: wsapmeForm.apiUrl, userToken: wsapmeForm.userToken, deviceId: Number(wsapmeForm.deviceId) }, channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ?? true) }}
-                  >
+                <form
+                  className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
+                  onSubmit={(e) => { e.preventDefault(); saveChannel('WHATSAPP_UNOFFICIAL', { apiUrl: wsapmeForm.apiUrl, userToken: wsapmeForm.userToken, deviceId: Number(wsapmeForm.deviceId) }, channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ?? true) }}
+                >
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.apiUrl}</label>
                       <input value={wsapmeForm.apiUrl} onChange={(e) => setWsapmeForm((f) => ({ ...f, apiUrl: e.target.value }))} placeholder={ct.wsapme.apiUrlPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
@@ -862,8 +844,7 @@ export default function NotificationsPage() {
                         {t.common.save}
                       </button>
                     </div>
-                  </form>
-                )}
+                </form>
               </div>
               )}
 
