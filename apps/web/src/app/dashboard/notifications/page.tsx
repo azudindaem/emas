@@ -386,7 +386,7 @@ export default function NotificationsPage() {
   // SMS form
   const [smsForm, setSmsForm] = useState({ provider: 'adasms', apiKey: '', apiPassword: '', senderId: '' })
   // Wsapme form
-  const [wsapmeForm, setWsapmeForm] = useState({ apiUrl: 'https://app.wsapme.com/api/send', token: '', senderId: '' })
+  const [wsapmeForm, setWsapmeForm] = useState({ apiUrl: 'https://api.wsapme.com/v1/sendMessage', userToken: '', deviceId: '' })
 
   const loadChannelConfigs = useCallback(async () => {
     setChannelLoading(true)
@@ -416,9 +416,9 @@ export default function NotificationsPage() {
         } else if (cfg.channel === 'WHATSAPP_UNOFFICIAL') {
           const s = cfg.settings as Record<string, unknown>
           setWsapmeForm({
-            apiUrl: (s.apiUrl as string) ?? 'https://app.wsapme.com/api/send',
-            token: (s.token as string) ?? '',
-            senderId: (s.senderId as string) ?? '',
+            apiUrl: (s.apiUrl as string) ?? 'https://api.wsapme.com/v1/sendMessage',
+            userToken: (s.userToken as string) ?? '',
+            deviceId: String(s.deviceId ?? ''),
           })
         }
       }
@@ -794,19 +794,19 @@ export default function NotificationsPage() {
                 {expandedChannel === 'WHATSAPP_UNOFFICIAL' && (
                   <form
                     className="border-t border-slate-100 bg-slate-50 px-5 py-5 space-y-4"
-                    onSubmit={(e) => { e.preventDefault(); saveChannel('WHATSAPP_UNOFFICIAL', { apiUrl: wsapmeForm.apiUrl, token: wsapmeForm.token, senderId: wsapmeForm.senderId }, channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ?? true) }}
+                    onSubmit={(e) => { e.preventDefault(); saveChannel('WHATSAPP_UNOFFICIAL', { apiUrl: wsapmeForm.apiUrl, userToken: wsapmeForm.userToken, deviceId: Number(wsapmeForm.deviceId) }, channelConfigs['WHATSAPP_UNOFFICIAL']?.isActive ?? true) }}
                   >
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.apiUrl}</label>
                       <input value={wsapmeForm.apiUrl} onChange={(e) => setWsapmeForm((f) => ({ ...f, apiUrl: e.target.value }))} placeholder={ct.wsapme.apiUrlPlaceholder} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.token}</label>
-                      <input type="password" value={wsapmeForm.token} onChange={(e) => setWsapmeForm((f) => ({ ...f, token: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.userToken}</label>
+                      <input type="password" value={wsapmeForm.userToken} onChange={(e) => setWsapmeForm((f) => ({ ...f, userToken: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.senderId}</label>
-                      <input value={wsapmeForm.senderId} onChange={(e) => setWsapmeForm((f) => ({ ...f, senderId: e.target.value }))} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                      <label className="mb-1 block text-xs font-medium text-slate-600">{ct.wsapme.deviceId}</label>
+                      <input type="number" value={wsapmeForm.deviceId} onChange={(e) => setWsapmeForm((f) => ({ ...f, deviceId: e.target.value }))} placeholder="e.g. 10" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                     </div>
                     <div className="flex justify-end">
                       <button type="submit" disabled={channelSaving === 'WHATSAPP_UNOFFICIAL'} className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60">

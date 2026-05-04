@@ -40,7 +40,7 @@ export const notificationProcessor: Processor<NotificationJob> = async (job) => 
       console.log(`[notification] SMS sent to ${recipient} via ${(settings as unknown as SmsConfig).provider} (tenant=${tenantId})`)
     } else if (channel === 'WHATSAPP_UNOFFICIAL') {
       await sendWsapme(settings as unknown as WsapmeConfig, recipient, message)
-      console.log(`[notification] Wsapme sent to ${recipient} (tenant=${tenantId})`)
+      console.log(`[notification] Wsapme sent to ${recipient} device=${(settings as unknown as WsapmeConfig).deviceId} (tenant=${tenantId})`)
     } else {
       console.warn(`[notification] Unknown channel=${channel}, skipping`)
     }

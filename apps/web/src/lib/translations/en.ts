@@ -694,9 +694,9 @@ const en: Translations = {
         title: 'WhatsApp Tidak Rasmi (Wsapme)',
         subtitle: 'Send WhatsApp messages via Wsapme gateway',
         apiUrl: 'API URL',
-        apiUrlPlaceholder: 'https://app.wsapme.com/api/send',
-        token: 'Token',
-        senderId: 'Sender ID (optional)',
+        apiUrlPlaceholder: 'https://api.wsapme.com/v1/sendMessage',
+        userToken: 'User Token',
+        deviceId: 'Device ID',
       },
     },
     webhook: {

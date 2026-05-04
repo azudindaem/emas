@@ -692,9 +692,9 @@ const ms = {
         title: 'WhatsApp Tidak Rasmi (Wsapme)',
         subtitle: 'Hantar mesej WhatsApp melalui gateway Wsapme',
         apiUrl: 'URL API',
-        apiUrlPlaceholder: 'https://app.wsapme.com/api/send',
-        token: 'Token',
-        senderId: 'Sender ID (pilihan)',
+        apiUrlPlaceholder: 'https://api.wsapme.com/v1/sendMessage',
+        userToken: 'User Token',
+        deviceId: 'Device ID',
       },
     },
     webhook: {

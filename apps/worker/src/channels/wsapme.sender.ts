@@ -1,13 +1,14 @@
 export interface WsapmeConfig {
-  apiUrl: string   // e.g. https://app.wsapme.com/api/send
-  token: string
-  senderId?: string
+  apiUrl: string   // e.g. https://api.wsapme.com/v1/sendMessage
+  userToken: string
+  deviceId: number
 }
 
 /**
  * Wsapme — WhatsApp Unofficial API
  * POST {apiUrl}
- * Body: { token, to, message }
+ * Header: x-wsapme-token: {userToken}
+ * Body: { device, to, message, priority, data, time }
  */
 export async function sendWsapme(
   config: WsapmeConfig,
@@ -16,12 +17,17 @@ export async function sendWsapme(
 ): Promise<void> {
   const res = await fetch(config.apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wsapme-token': config.userToken,
+    },
     body: JSON.stringify({
-      token: config.token,
+      device: Number(config.deviceId),
       to,
       message,
-      ...(config.senderId ? { sender_id: config.senderId } : {}),
+      priority: 1,
+      data: '',
+      time: 0,
     }),
   })
 
