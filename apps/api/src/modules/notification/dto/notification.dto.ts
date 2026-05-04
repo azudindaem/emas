@@ -44,3 +44,9 @@ export class TopUpNotifyCreditDto {
   @Min(1)
   amount: number
 }
+
+export class VerifyTopUpDto {
+  @IsString()
+  @IsNotEmpty()
+  purchaseId: string
+}

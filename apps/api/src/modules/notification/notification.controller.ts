@@ -6,7 +6,7 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
 import { RbacGuard } from '../../common/guards/rbac.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
-import { SendNotificationDto, TopUpNotifyCreditDto, UpsertNotificationConfigDto } from './dto/notification.dto'
+import { SendNotificationDto, TopUpNotifyCreditDto, UpsertNotificationConfigDto, VerifyTopUpDto } from './dto/notification.dto'
 
 @ApiTags('notification')
 @ApiBearerAuth()
@@ -46,6 +46,16 @@ export class NotificationController {
   @Post('credit/topup')
   async topUpCredit(@CurrentTenant() tenant: TenantContext, @Body() dto: TopUpNotifyCreditDto): Promise<Record<string, unknown>> {
     return this.notificationService.topUpCredit(tenant.id, dto) as Promise<Record<string, unknown>>
+  }
+
+  @Post('credit/topup/initiate')
+  async initiateTopUp(@CurrentTenant() tenant: TenantContext, @Body() dto: TopUpNotifyCreditDto): Promise<Record<string, unknown>> {
+    return this.notificationService.initiateTopUp(tenant.id, dto)
+  }
+
+  @Post('credit/topup/verify')
+  async verifyTopUp(@CurrentTenant() tenant: TenantContext, @Body() dto: VerifyTopUpDto): Promise<Record<string, unknown>> {
+    return this.notificationService.verifyTopUp(tenant.id, dto.purchaseId)
   }
 
   @Get('credit/transactions')

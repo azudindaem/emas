@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/lib/locale'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { webhooks as webhooksApi, notificationChannels, notifyCredit, type NotificationChannelConfig, type NotifyCreditBalance, type NotifyCreditTransaction } from '@/lib/api'
 import {
   Bell,
@@ -401,11 +402,11 @@ function TopUpModal({ onClose, onSuccess, t }: TopUpModalProps) {
     if (amount < 5) { setError('Minimum top up is RM 5'); return }
     setPaying(true)
     try {
-      const res = await notifyCredit.topUp(amount)
-      onSuccess(res.balance)
+      const res = await notifyCredit.initiateTopUp(amount)
+      // Redirect to CHIP payment page
+      window.location.href = res.checkoutUrl
     } catch (e) {
       setError((e as Error).message ?? 'Top up failed')
-    } finally {
       setPaying(false)
     }
   }
@@ -517,6 +518,8 @@ export default function NotificationsPage() {
   const wt = t.notifications.webhook
   const ct = t.notifications.channel
   const et = t.notifications.emasNotify
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [activeChannelTab, setActiveChannelTab] = useState<ChannelTab>('channel')
   const [activeEmasNotifyTab, setActiveEmasNotifyTab] = useState<EmasNotifyTab>('dashboard')
   const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
@@ -638,6 +641,38 @@ export default function NotificationsPage() {
       setCreditLoading(false)
     }
   }, [])
+
+  // Auto-verify top-up on return from CHIP payment page
+  useEffect(() => {
+    const topupRef = searchParams.get('topupRef')
+    const topupStatus = searchParams.get('topupStatus')
+    if (!topupRef || topupRef === 'success' || topupRef === 'failed' || topupRef === 'cancelled') {
+      if (topupRef === 'success' || topupStatus === 'success') {
+        // CHIP redirected back with success status but no purchaseId — just refresh balance
+        setActiveChannelTab('emasNotify')
+        loadCreditData()
+        router.replace('/dashboard/notifications')
+      }
+      return
+    }
+    // We have a real purchaseId — verify with API
+    setActiveChannelTab('emasNotify')
+    notifyCredit.verifyTopUp(topupRef).then((res) => {
+      if (res.status === 'paid' || res.status === 'already_credited') {
+        if (res.balance !== undefined) {
+          setCreditBalance((prev) => prev
+            ? { ...prev, balance: res.balance!, messagesRemaining: Math.floor(res.balance! / PRICE_PER_MESSAGE) }
+            : null)
+        }
+        showToast(t.notifications.emasNotify.topUp.success)
+        loadCreditData()
+      }
+      router.replace('/dashboard/notifications')
+    }).catch(() => {
+      router.replace('/dashboard/notifications')
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const loadWebhooks = useCallback(async () => {
     setLoading(true)

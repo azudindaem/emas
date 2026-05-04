@@ -14,6 +14,7 @@ import {
 
 const PRICE_PER_MESSAGE = 0.08
 const PROCESSING_FEE = 1.00
+const CHIP_BASE_URL = 'https://gate.chip-in.asia'
 
 @Injectable()
 export class NotificationService implements OnModuleDestroy {
@@ -192,5 +193,155 @@ export class NotificationService implements OnModuleDestroy {
         },
       }),
     ])
+  }
+
+  // ─── Payment-linked Top Up ────────────────────────────────────────────────
+
+  async initiateTopUp(tenantId: string, dto: TopUpNotifyCreditDto) {
+    const amount = dto.amount
+    if (amount < 5) throw new BadRequestException('Minimum top up is RM 5')
+
+    const total = amount + PROCESSING_FEE
+
+    // Load SystemPaymentGatewayConfig CHIP for this tenant
+    const chipConfig = await this.prisma.systemPaymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
+    })
+    if (!chipConfig || !chipConfig.isEnabled) {
+      throw new BadRequestException('CHIP payment gateway is not configured. Please enable it in System > Payment Settings.')
+    }
+
+    const cfg = chipConfig.config as Record<string, unknown>
+    const secretKey = String(cfg.secretKey ?? cfg.secret_key ?? '').trim()
+    const brandId = String(cfg.brandId ?? cfg.brand_id ?? '').trim()
+    if (!secretKey || !brandId) {
+      throw new BadRequestException('CHIP brand_id / secret_key not set in System Payment Settings.')
+    }
+
+    // Get tenant info for CHIP client fields
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } })
+
+    const appBaseUrl = (process.env.APP_BASE_URL ?? process.env.ALLOWED_ORIGINS?.split(',')[0] ?? 'https://dev.emas.my').replace(/\/$/, '')
+    const returnBase = `${appBaseUrl}/dashboard/notifications`
+
+    const payload = {
+      brand_id: brandId,
+      reference: `NOTIFY-CREDIT-${tenantId.slice(0, 8)}-${Date.now()}`,
+      client: {
+        full_name: tenant?.name ?? 'Merchant',
+        email: 'billing@no-email.local',
+        phone: '',
+      },
+      purchase: {
+        currency: 'MYR',
+        products: [
+          { name: `Emas Notify Credits RM ${amount.toFixed(2)}`, price: Math.round(amount * 100), quantity: 1 },
+          { name: 'Processing Fee', price: Math.round(PROCESSING_FEE * 100), quantity: 1 },
+        ],
+      },
+      platform: 'api',
+      creator_agent: 'api',
+      // success_redirect will have the purchaseId injected by CHIP via {id} placeholder
+      success_redirect: `${returnBase}?topupRef={id}`,
+      failure_redirect: `${returnBase}?topupRef=failed`,
+      cancel_redirect: `${returnBase}?topupRef=cancelled`,
+    }
+
+    const res = await fetch(`${CHIP_BASE_URL}/api/v1/purchases/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new BadRequestException(`CHIP create purchase failed ${res.status}: ${body}`)
+    }
+    const data = await res.json() as { checkout_url?: string; id?: string }
+    const checkoutUrl = String(data.checkout_url ?? '').trim()
+    const purchaseId = String(data.id ?? '').trim()
+    if (!checkoutUrl) throw new BadRequestException('CHIP purchase created without checkout URL')
+
+    // Save PENDING transaction
+    const credit = await this.ensureCredit(tenantId)
+    const balanceBefore = Number(credit.balance)
+
+    await this.prisma.notifyCreditTransaction.create({
+      data: {
+        creditId: credit.id,
+        type: NotifyCreditTransactionType.TOPUP,
+        amount,
+        balanceBefore,
+        balanceAfter: balanceBefore, // unchanged until verified
+        processingFee: PROCESSING_FEE,
+        referenceId: purchaseId,
+        note: `Top up RM ${amount.toFixed(2)} via CHIP`,
+        status: 'PENDING',
+      },
+    })
+
+    return { checkoutUrl, purchaseId }
+  }
+
+  async verifyTopUp(tenantId: string, purchaseId: string) {
+    if (!purchaseId) throw new BadRequestException('purchaseId is required')
+
+    // Find the PENDING transaction
+    const credit = await this.ensureCredit(tenantId)
+    const tx = await this.prisma.notifyCreditTransaction.findFirst({
+      where: { creditId: credit.id, referenceId: purchaseId, status: 'PENDING' },
+    })
+    if (!tx) {
+      // Check if already completed
+      const done = await this.prisma.notifyCreditTransaction.findFirst({
+        where: { creditId: credit.id, referenceId: purchaseId, status: 'COMPLETED' },
+      })
+      if (done) return { status: 'already_credited', balance: Number(credit.balance) }
+      throw new BadRequestException('No pending top-up found for this purchase')
+    }
+
+    // Load CHIP config to verify
+    const chipConfig = await this.prisma.systemPaymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
+    })
+    if (!chipConfig) throw new BadRequestException('CHIP not configured')
+
+    const cfg = chipConfig.config as Record<string, unknown>
+    const secretKey = String(cfg.secretKey ?? cfg.secret_key ?? '').trim()
+
+    // Query CHIP for purchase status
+    const res = await fetch(`${CHIP_BASE_URL}/api/v1/purchases/${purchaseId}/`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    })
+    if (!res.ok) throw new BadRequestException(`CHIP verify failed: ${res.status}`)
+    const purchase = await res.json() as { status?: string; is_test?: boolean }
+
+    if (purchase.status !== 'paid') {
+      await this.prisma.notifyCreditTransaction.update({
+        where: { id: tx.id },
+        data: { status: purchase.status === 'cancelled' ? 'CANCELLED' : 'PENDING' },
+      })
+      return { status: purchase.status ?? 'pending', balance: Number(credit.balance) }
+    }
+
+    // Credit the balance
+    const balanceBefore = Number(credit.balance)
+    const balanceAfter = balanceBefore + Number(tx.amount)
+
+    await this.prisma.$transaction([
+      this.prisma.notifyCredit.update({
+        where: { id: credit.id },
+        data: { balance: balanceAfter },
+      }),
+      this.prisma.notifyCreditTransaction.update({
+        where: { id: tx.id },
+        data: { balanceBefore, balanceAfter, status: 'COMPLETED' },
+      }),
+    ])
+
+    return {
+      status: 'paid',
+      balance: balanceAfter,
+      messagesAdded: Math.floor(Number(tx.amount) / PRICE_PER_MESSAGE),
+    }
   }
 }

@@ -387,6 +387,16 @@ export const notifyCredit = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     }),
+  initiateTopUp: (amount: number) =>
+    request<{ checkoutUrl: string; purchaseId: string }>('/notification/credit/topup/initiate', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
+  verifyTopUp: (purchaseId: string) =>
+    request<{ status: string; balance?: number; messagesAdded?: number }>('/notification/credit/topup/verify', {
+      method: 'POST',
+      body: JSON.stringify({ purchaseId }),
+    }),
   listTransactions: (take = 20, skip = 0) =>
     request<{ transactions: NotifyCreditTransaction[]; total: number }>(
       `/notification/credit/transactions?take=${take}&skip=${skip}`,
