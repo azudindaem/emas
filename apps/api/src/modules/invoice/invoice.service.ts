@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PaymentStatus } from '@emas/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateInvoiceDto, ListInvoiceQueryDto } from './dto/invoice.dto'
+import StripeLib = require('stripe')
 
 const CHIP_BASE_URLS: Record<string, string> = {
   production: 'https://gate.chip-in.asia',
@@ -119,53 +120,51 @@ export class InvoiceService {
       throw new BadRequestException('Default payment gateway is not configured. Please set it in Payment Settings.')
     }
 
-    if (defaultGateway !== 'CHIP') {
-      throw new BadRequestException(`Payment gateway "${defaultGateway}" is not yet supported. Please set default to CHIP in Payment Settings.`)
+    if (defaultGateway === 'CHIP') {
+      return this.createChipPaymentLink(tenantId, invoice)
     }
 
-    const gatewayToUse = defaultGateway
+    if (defaultGateway === 'STRIPE') {
+      return this.createStripePaymentLink(tenantId, invoice)
+    }
 
+    throw new BadRequestException(`Payment gateway "${defaultGateway}" is not yet supported. Please set default to CHIP or STRIPE in Payment Settings.`)
+  }
+
+  // ── CHIP ──────────────────────────────────────────────────────────────────
+  private async createChipPaymentLink(
+    tenantId: string,
+    invoice: { id: string; invoiceNo: string; orderId: string; order: Record<string, unknown> },
+  ): Promise<{ gateway: string; checkoutUrl: string; purchaseId?: string }> {
     const chip = await this.prisma.paymentGatewayConfig.findUnique({
-      where: { tenantId_gateway: { tenantId, gateway: gatewayToUse } },
+      where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
     })
-    if (!chip || !chip.isEnabled) {
-      throw new BadRequestException('CHIP gateway is not enabled')
-    }
+    if (!chip || !chip.isEnabled) throw new BadRequestException('CHIP gateway is not enabled')
 
     const config = (chip.config ?? {}) as Record<string, unknown>
     const secretKey = String(config.secret_key ?? '').trim()
     const brandId = String(config.brand_id ?? '').trim()
     const environment = String(config.environment ?? 'production').toLowerCase()
-    if (!secretKey || !brandId) {
-      throw new BadRequestException('CHIP brand_id/secret_key is missing in payment settings')
-    }
+    if (!secretKey || !brandId) throw new BadRequestException('CHIP brand_id/secret_key is missing in payment settings')
 
     const total = Number(invoice.order.total ?? 0)
-    if (!Number.isFinite(total) || total <= 0) {
-      throw new BadRequestException('Invalid invoice total amount')
-    }
+    if (!Number.isFinite(total) || total <= 0) throw new BadRequestException('Invalid invoice total amount')
 
     const appBaseUrl = (process.env.APP_BASE_URL ?? process.env.WEB_APP_URL ?? 'https://dev.emas.my').replace(/\/$/, '')
     const successUrl = `${appBaseUrl}/dashboard/invoices?invoiceId=${invoice.id}&syncPayment=1`
-
     const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
+
     const payload = {
       brand_id: brandId,
       reference: invoice.invoiceNo,
       client: {
-        full_name: invoice.order.customerName || 'Customer',
-        email: invoice.order.customerEmail || 'customer@no-email.local',
-        phone: invoice.order.customerPhone || '',
+        full_name: String(invoice.order.customerName || 'Customer'),
+        email: String(invoice.order.customerEmail || 'customer@no-email.local'),
+        phone: String(invoice.order.customerPhone || ''),
       },
       purchase: {
         currency: 'MYR',
-        products: [
-          {
-            name: `Invoice ${invoice.invoiceNo}`,
-            price: Math.round(total * 100),
-            quantity: 1,
-          },
-        ],
+        products: [{ name: `Invoice ${invoice.invoiceNo}`, price: Math.round(total * 100), quantity: 1 }],
       },
       platform: 'api',
       creator_agent: 'api',
@@ -176,22 +175,16 @@ export class InvoiceService {
 
     const res = await fetch(`${baseUrl}/api/v1/purchases/`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       throw new BadRequestException(`CHIP create purchase failed ${res.status}: ${body}`)
     }
-
     const data = await res.json() as { checkout_url?: string; id?: string }
     const checkoutUrl = String(data.checkout_url ?? '').trim()
-    if (!checkoutUrl) {
-      throw new BadRequestException('CHIP purchase created without checkout URL')
-    }
+    if (!checkoutUrl) throw new BadRequestException('CHIP purchase created without checkout URL')
 
     await this.prisma.orderPayment.create({
       data: {
@@ -202,11 +195,120 @@ export class InvoiceService {
         gatewayRef: String(data.id ?? invoice.invoiceNo),
       },
     })
+    return { gateway: 'CHIP', checkoutUrl, purchaseId: data.id }
+  }
 
-    return {
-      gateway: 'CHIP',
-      checkoutUrl,
-      purchaseId: data.id,
+  // ── STRIPE ────────────────────────────────────────────────────────────────
+  private async createStripePaymentLink(
+    tenantId: string,
+    invoice: { id: string; invoiceNo: string; orderId: string; order: Record<string, unknown> },
+  ): Promise<{ gateway: string; checkoutUrl: string; purchaseId?: string }> {
+    const stripeConfig = await this.prisma.paymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'STRIPE' } },
+    })
+    if (!stripeConfig || !stripeConfig.isEnabled) throw new BadRequestException('Stripe gateway is not enabled')
+
+    const config = (stripeConfig.config ?? {}) as Record<string, unknown>
+    const secretKey = String(config.secret_key ?? '').trim()
+    if (!secretKey) throw new BadRequestException('Stripe secret_key is missing in payment settings')
+
+    const total = Number(invoice.order.total ?? 0)
+    if (!Number.isFinite(total) || total <= 0) throw new BadRequestException('Invalid invoice total amount')
+
+    const appBaseUrl = (process.env.APP_BASE_URL ?? process.env.WEB_APP_URL ?? 'https://dev.emas.my').replace(/\/$/, '')
+    const successUrl = `${appBaseUrl}/dashboard/invoices?invoiceId=${invoice.id}&syncPayment=1`
+    const cancelUrl = `${appBaseUrl}/dashboard/invoices?invoiceId=${invoice.id}`
+
+    const stripe = new StripeLib(secretKey)
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'myr',
+            unit_amount: Math.round(total * 100),
+            product_data: { name: `Invoice ${invoice.invoiceNo}` },
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: String(invoice.order.customerEmail || '') || undefined,
+      metadata: {
+        tenantId,
+        invoiceId: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        orderId: invoice.orderId,
+      },
+    })
+
+    await this.prisma.orderPayment.create({
+      data: {
+        orderId: invoice.orderId,
+        amount: total,
+        method: 'STRIPE',
+        status: PaymentStatus.UNPAID,
+        gatewayRef: session.id,
+      },
+    })
+
+    return { gateway: 'STRIPE', checkoutUrl: session.url!, purchaseId: session.id }
+  }
+
+  async handleStripeWebhook(rawBody: Buffer, signature: string, tenantId?: string): Promise<void> {
+    // Find ALL Stripe configs to attempt signature verification (multi-tenant webhook)
+    const configs = await this.prisma.paymentGatewayConfig.findMany({
+      where: {
+        gateway: 'STRIPE',
+        isEnabled: true,
+        ...(tenantId ? { tenantId } : {}),
+      },
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let event: any = null
+    let matchedConfig: typeof configs[0] | null = null
+
+    for (const cfg of configs) {
+      const c = (cfg.config ?? {}) as Record<string, unknown>
+      const secretKey = String(c.secret_key ?? '').trim()
+      const webhookSecret = String(c.webhook_secret ?? '').trim()
+      if (!secretKey || !webhookSecret || !webhookSecret.startsWith('whsec_')) continue
+      try {
+        const stripe = new StripeLib(secretKey)
+        event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
+        matchedConfig = cfg
+        break
+      } catch {
+        // try next tenant config
+      }
+    }
+
+    if (!event || !matchedConfig) return
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as { id: string; metadata?: Record<string, string> }
+      const invoiceId = session.metadata?.invoiceId
+      const orderId = session.metadata?.orderId
+      if (!invoiceId || !orderId) return
+
+      const payment = await this.prisma.orderPayment.findFirst({
+        where: { orderId, gatewayRef: session.id },
+      })
+      if (!payment) return
+
+      await this.prisma.$transaction([
+        this.prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: PaymentStatus.PAID },
+        }),
+        this.prisma.orderPayment.update({
+          where: { id: payment.id },
+          data: { status: PaymentStatus.PAID, paidAt: new Date() },
+        }),
+      ])
     }
   }
 

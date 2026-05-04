@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Headers, NotFoundException, Param, Post, Query, RawBody, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { InvoiceService } from './invoice.service'
@@ -83,5 +83,14 @@ export class InvoiceController {
   ) {
     const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
     return this.invoiceService.syncCustomerPaymentStatus(tenant.id, ownerId, id)
+  }
+
+  @Post('stripe-webhook')
+  async stripeWebhook(
+    @RawBody() rawBody: Buffer,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    await this.invoiceService.handleStripeWebhook(rawBody, signature)
+    return { received: true }
   }
 }
