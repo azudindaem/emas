@@ -326,14 +326,50 @@ export class InvoiceService {
       throw new BadRequestException('Only CUSTOMER invoice can sync payment status')
     }
 
-    const chipPayment = await this.prisma.orderPayment.findFirst({
-      where: { orderId: invoice.orderId, method: 'CHIP' },
+    // Find the most recent payment record for this order (any gateway)
+    const payment = await this.prisma.orderPayment.findFirst({
+      where: { orderId: invoice.orderId },
       orderBy: { createdAt: 'desc' },
     })
-    if (!chipPayment || !chipPayment.gatewayRef) {
-      throw new BadRequestException('No CHIP payment record found for this invoice')
+    if (!payment || !payment.gatewayRef) {
+      throw new BadRequestException('No payment record found for this invoice')
     }
 
+    const method = String(payment.method ?? '').toUpperCase()
+
+    // ── STRIPE sync ───────────────────────────────────────────────────────
+    if (method === 'STRIPE') {
+      const stripeConfig = await this.prisma.paymentGatewayConfig.findUnique({
+        where: { tenantId_gateway: { tenantId, gateway: 'STRIPE' } },
+      })
+      if (!stripeConfig || !stripeConfig.isEnabled) {
+        throw new BadRequestException('Stripe gateway is not enabled')
+      }
+      const config = (stripeConfig.config ?? {}) as Record<string, unknown>
+      const secretKey = String(config.secret_key ?? '').trim()
+      if (!secretKey) throw new BadRequestException('Stripe secret_key is missing in payment settings')
+
+      const stripe = new StripeLib(secretKey)
+      const session = await stripe.checkout.sessions.retrieve(payment.gatewayRef)
+      const isPaid = session.payment_status === 'paid'
+
+      if (isPaid) {
+        await this.prisma.$transaction([
+          this.prisma.order.update({
+            where: { id: invoice.orderId },
+            data: { paymentStatus: PaymentStatus.PAID },
+          }),
+          this.prisma.orderPayment.update({
+            where: { id: payment.id },
+            data: { status: PaymentStatus.PAID, paidAt: payment.paidAt ?? new Date() },
+          }),
+        ])
+        return { updated: true, chipStatus: session.payment_status, paymentStatus: PaymentStatus.PAID }
+      }
+      return { updated: false, chipStatus: session.payment_status, paymentStatus: String(invoice.order.paymentStatus) }
+    }
+
+    // ── CHIP sync ─────────────────────────────────────────────────────────
     const chip = await this.prisma.paymentGatewayConfig.findUnique({
       where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
     })
@@ -349,7 +385,7 @@ export class InvoiceService {
     }
 
     const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
-    const res = await fetch(`${baseUrl}/api/v1/purchases/${chipPayment.gatewayRef}/`, {
+    const res = await fetch(`${baseUrl}/api/v1/purchases/${payment.gatewayRef}/`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     })
     if (!res.ok) {
@@ -368,10 +404,10 @@ export class InvoiceService {
           data: { paymentStatus: PaymentStatus.PAID },
         }),
         this.prisma.orderPayment.update({
-          where: { id: chipPayment.id },
+          where: { id: payment.id },
           data: {
             status: PaymentStatus.PAID,
-            paidAt: chipPayment.paidAt ?? new Date(),
+            paidAt: payment.paidAt ?? new Date(),
           },
         }),
       ])
