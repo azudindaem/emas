@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator'
+import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, Min } from 'class-validator'
 
 export enum NotificationChannelDto {
   EMAIL = 'EMAIL',
@@ -49,4 +49,22 @@ export class VerifyTopUpDto {
   @IsString()
   @IsNotEmpty()
   purchaseId: string
+}
+
+export class UpdateNotifyConfigDto {
+  @IsOptional()
+  @IsBoolean()
+  isEnabled?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  spamPrevention?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerNewOrder?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerInTransit?: boolean
 }

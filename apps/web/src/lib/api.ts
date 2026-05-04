@@ -403,6 +403,22 @@ export const notifyCredit = {
     ),
 }
 
+export interface NotifyConfig {
+  isEnabled: boolean
+  spamPrevention: boolean
+  triggerNewOrder: boolean
+  triggerInTransit: boolean
+}
+
+export const notifyConfig = {
+  get: () => request<NotifyConfig>('/notification/notify-config'),
+  update: (data: Partial<NotifyConfig>) =>
+    request<NotifyConfig>('/notification/notify-config', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+}
+
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
 export const roles = {

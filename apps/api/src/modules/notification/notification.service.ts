@@ -344,4 +344,24 @@ export class NotificationService implements OnModuleDestroy {
       messagesAdded: Math.floor(Number(tx.amount) / PRICE_PER_MESSAGE),
     }
   }
+
+  // ─── Notify Config ────────────────────────────────────────────────────────
+
+  async getNotifyConfig(tenantId: string) {
+    const config = await this.prisma.notifyConfig.findUnique({ where: { tenantId } })
+    return config ?? {
+      isEnabled: false,
+      spamPrevention: true,
+      triggerNewOrder: true,
+      triggerInTransit: true,
+    }
+  }
+
+  async updateNotifyConfig(tenantId: string, dto: { isEnabled?: boolean; spamPrevention?: boolean; triggerNewOrder?: boolean; triggerInTransit?: boolean }) {
+    return this.prisma.notifyConfig.upsert({
+      where: { tenantId },
+      create: { tenantId, ...dto },
+      update: dto,
+    })
+  }
 }

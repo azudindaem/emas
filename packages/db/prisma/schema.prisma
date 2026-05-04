@@ -48,6 +48,7 @@ model Tenant {
   paymentGatewayConfigs PaymentGatewayConfig[]
   systemPaymentGatewayConfigs SystemPaymentGatewayConfig[]
   notifyCredit         NotifyCredit?
+  notifyConfig         NotifyConfig?
 
   @@index([slug])
 }
@@ -872,6 +873,23 @@ enum ShippingRateType {
   FREE_SHIPPING
   COD_SURCHARGE
   REMOTE_SURCHARGE
+}
+
+// ─────────────────────────────────────────────────────────
+// EMAS NOTIFY CONFIG
+// ─────────────────────────────────────────────────────────
+
+model NotifyConfig {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  isEnabled        Boolean  @default(false)
+  spamPrevention   Boolean  @default(true)
+  triggerNewOrder  Boolean  @default(true)
+  triggerInTransit Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 // ─────────────────────────────────────────────────────────

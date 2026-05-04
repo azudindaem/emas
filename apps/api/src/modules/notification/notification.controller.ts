@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { NotificationService } from './notification.service'
@@ -6,7 +6,7 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
 import { RbacGuard } from '../../common/guards/rbac.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
-import { SendNotificationDto, TopUpNotifyCreditDto, UpsertNotificationConfigDto, VerifyTopUpDto } from './dto/notification.dto'
+import { SendNotificationDto, TopUpNotifyCreditDto, UpsertNotificationConfigDto, VerifyTopUpDto, UpdateNotifyConfigDto } from './dto/notification.dto'
 
 @ApiTags('notification')
 @ApiBearerAuth()
@@ -69,5 +69,17 @@ export class NotificationController {
       take ? parseInt(take) : 20,
       skip ? parseInt(skip) : 0,
     ) as Promise<Record<string, unknown>>
+  }
+
+  // ─── Notify Config ─────────────────────────────────────────────────────────
+
+  @Get('notify-config')
+  getNotifyConfig(@CurrentTenant() tenant: TenantContext) {
+    return this.notificationService.getNotifyConfig(tenant.id)
+  }
+
+  @Patch('notify-config')
+  updateNotifyConfig(@CurrentTenant() tenant: TenantContext, @Body() dto: UpdateNotifyConfigDto) {
+    return this.notificationService.updateNotifyConfig(tenant.id, dto)
   }
 }

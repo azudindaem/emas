@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/lib/locale'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { webhooks as webhooksApi, notificationChannels, notifyCredit, type NotificationChannelConfig, type NotifyCreditBalance, type NotifyCreditTransaction } from '@/lib/api'
+import { webhooks as webhooksApi, notificationChannels, notifyCredit, notifyConfig as notifyConfigApi, type NotificationChannelConfig, type NotifyCreditBalance, type NotifyCreditTransaction, type NotifyConfig } from '@/lib/api'
 import {
   Bell,
   Webhook,
@@ -546,6 +546,10 @@ export default function NotificationsPage() {
   const [creditLoading, setCreditLoading] = useState(false)
   const [showTopUp, setShowTopUp] = useState(false)
 
+  // ── Notify Config State ────────────────────────────────────────────────────
+  const [notifyConfigData, setNotifyConfigData] = useState<NotifyConfig>({ isEnabled: false, spamPrevention: true, triggerNewOrder: true, triggerInTransit: true })
+  const [configSaving, setConfigSaving] = useState(false)
+
   // Email form
   const [emailForm, setEmailForm] = useState({ host: '', port: '587', secure: false, user: '', pass: '', from: '' })
   // SMS form
@@ -708,6 +712,7 @@ export default function NotificationsPage() {
     }
     if (activeChannelTab === 'emasNotify') {
       loadCreditData()
+      notifyConfigApi.get().then(setNotifyConfigData).catch(() => {})
       return
     }
     loadChannelConfigs()
@@ -995,24 +1000,178 @@ export default function NotificationsPage() {
                       <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                         <div className="mb-4 flex items-center justify-between">
                           <h4 className="text-lg font-semibold text-slate-900">{et.serviceStatus.title}</h4>
-                          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">{et.serviceStatus.inactive}</div>
+                          {notifyConfigData.isEnabled
+                            ? <div className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">{et.serviceStatus.active}</div>
+                            : <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">{et.serviceStatus.inactive}</div>
+                          }
                         </div>
-                        <p className="mb-4 text-sm text-slate-600">{et.serviceStatus.description}</p>
-                        <button
-                          type="button"
-                          onClick={() => setActiveEmasNotifyTab('settings')}
-                          className="text-sm font-medium text-amber-700 hover:text-amber-800"
-                        >
-                          {et.serviceStatus.goToSettings}
-                        </button>
+                        <p className="mb-4 text-sm text-slate-600">
+                          {notifyConfigData.isEnabled ? et.serviceStatus.activeDescription : et.serviceStatus.description}
+                        </p>
+                        {!notifyConfigData.isEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveEmasNotifyTab('settings')}
+                            className="text-sm font-medium text-amber-700 hover:text-amber-800"
+                          >
+                            {et.serviceStatus.goToSettings}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
 
                   {activeEmasNotifyTab === 'settings' && (
-                    <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-                      <h4 className="mb-2 text-lg font-semibold text-slate-900">{et.panels.settingsTitle}</h4>
-                      <p className="text-sm text-slate-600">{et.panels.settingsDescription}</p>
+                    <div className="space-y-4">
+                      {/* Enable Toggle */}
+                      <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-base font-semibold text-slate-900">{et.settings.enableTitle}</h4>
+                            <p className="mt-1 text-sm text-slate-500">{et.settings.enableDescription}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={configSaving}
+                            onClick={async () => {
+                              const next = { ...notifyConfigData, isEnabled: !notifyConfigData.isEnabled }
+                              setNotifyConfigData(next)
+                              setConfigSaving(true)
+                              try {
+                                const saved = await notifyConfigApi.update({ isEnabled: next.isEnabled })
+                                setNotifyConfigData(saved)
+                                showToast(et.settings.saved)
+                              } catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                            }}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              notifyConfigData.isEnabled ? 'bg-amber-500' : 'bg-slate-200'
+                            } ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              notifyConfigData.isEnabled ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Spam Prevention */}
+                      <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h4 className="text-base font-semibold text-slate-900">{et.settings.spamPreventionTitle}</h4>
+                            <p className="mt-1 text-sm text-slate-500">{et.settings.spamPreventionDescription}</p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={configSaving}
+                            onClick={async () => {
+                              const next = { ...notifyConfigData, spamPrevention: !notifyConfigData.spamPrevention }
+                              setNotifyConfigData(next)
+                              setConfigSaving(true)
+                              try {
+                                const saved = await notifyConfigApi.update({ spamPrevention: next.spamPrevention })
+                                setNotifyConfigData(saved)
+                                showToast(et.settings.saved)
+                              } catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                            }}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              notifyConfigData.spamPrevention ? 'bg-amber-500' : 'bg-slate-200'
+                            } ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              notifyConfigData.spamPrevention ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+                        {notifyConfigData.spamPrevention && (
+                          <p className="mt-3 text-xs text-slate-400">{et.settings.spamPreventionNote}</p>
+                        )}
+                      </div>
+
+                      {/* Notification Triggers */}
+                      <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+                        <h4 className="mb-1 text-base font-semibold text-slate-900">{et.settings.triggersTitle}</h4>
+                        <p className="mb-4 text-sm text-slate-500">{et.settings.triggersDescription}</p>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {/* New Order */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-amber-100 p-2 text-amber-700"><Bell size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerNewOrder}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerNewOrderSub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerNewOrder: !notifyConfigData.triggerNewOrder }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try {
+                                  const saved = await notifyConfigApi.update({ triggerNewOrder: next.triggerNewOrder })
+                                  setNotifyConfigData(saved)
+                                } catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                                notifyConfigData.triggerNewOrder ? 'bg-amber-500' : 'bg-slate-200'
+                              } ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                                notifyConfigData.triggerNewOrder ? 'translate-x-5' : 'translate-x-0'
+                              }`} />
+                            </button>
+                          </div>
+
+                          {/* In Transit */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-blue-100 p-2 text-blue-600"><Send size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerInTransit}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerInTransitSub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerInTransit: !notifyConfigData.triggerInTransit }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try {
+                                  const saved = await notifyConfigApi.update({ triggerInTransit: next.triggerInTransit })
+                                  setNotifyConfigData(saved)
+                                } catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                                notifyConfigData.triggerInTransit ? 'bg-amber-500' : 'bg-slate-200'
+                              } ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                                notifyConfigData.triggerInTransit ? 'translate-x-5' : 'translate-x-0'
+                              }`} />
+                            </button>
+                          </div>
+
+                          {/* Coming Soon items */}
+                          {[et.settings.triggerPending, et.settings.triggerOutForDelivery, et.settings.triggerCompleted, et.settings.triggerReturned, et.settings.triggerRejected].map((label) => (
+                            <div key={label} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3 opacity-50">
+                              <div className="flex items-center gap-3">
+                                <div className="rounded-lg bg-slate-100 p-2 text-slate-400"><Bell size={15} /></div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-500">{label}</p>
+                                  <p className="text-xs text-slate-400">{et.settings.comingSoon}</p>
+                                </div>
+                              </div>
+                              <button disabled className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-not-allowed rounded-full border-2 border-transparent bg-slate-200">
+                                <span className="inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
