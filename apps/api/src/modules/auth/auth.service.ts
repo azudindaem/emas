@@ -105,6 +105,30 @@ export class AuthService {
     return { accessToken, refreshToken }
   }
 
+  async getMe(userId: string, tenantId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, tenantId },
+      include: { role: true, user: true },
+    })
+    if (!membership) throw new UnauthorizedException('Membership not found')
+
+    const permissions = Array.isArray(membership.role.permissions)
+      ? membership.role.permissions.map((p) => String(p))
+      : []
+    const isOwner = permissions.includes('*') || membership.role.level >= 100
+
+    return {
+      id: membership.user.id,
+      name: membership.user.name,
+      email: membership.user.email,
+      role: {
+        name: membership.role.name,
+        level: membership.role.level,
+        isOwner,
+      },
+    }
+  }
+
   async refreshTokens(refreshToken: string) {
     try {
       const payload = this.jwt.verify<{ sub: string; tenantId: string }>(refreshToken, {

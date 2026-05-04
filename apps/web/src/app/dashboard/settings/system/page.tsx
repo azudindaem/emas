@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale'
+import { useAuth } from '@/components/auth-provider'
 import { systemSettings, type SystemMode } from '@/lib/api'
 import { Wrench, Globe, AlertTriangle, CheckCircle2, Loader2, Save } from 'lucide-react'
 
 export default function SystemSettingsPage() {
   const { t } = useLocale()
   const s = t.systemSettings
+  const { isOwner, loading: authLoading } = useAuth()
+  const router = useRouter()
 
   const [mode, setMode] = useState<SystemMode>('ACTIVE')
   const [loading, setLoading] = useState(true)
@@ -25,6 +29,12 @@ export default function SystemSettingsPage() {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => {
+    if (!authLoading && !isOwner) {
+      router.replace('/dashboard')
+    }
+  }, [authLoading, isOwner, router])
+
   const handleSave = async () => {
     setSaving(true)
     setSaved(false)
@@ -38,7 +48,7 @@ export default function SystemSettingsPage() {
     }
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />

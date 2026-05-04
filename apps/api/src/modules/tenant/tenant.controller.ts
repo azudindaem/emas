@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { TenantService, type SystemMode } from './tenant.service'
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
+import { OwnerGuard } from '../../common/guards/owner.guard'
 import type { TenantContext } from '@emas/tenancy'
 import type { Request } from 'express'
 
@@ -32,7 +33,7 @@ export class TenantController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), OwnerGuard)
   @Patch('system-mode')
   async setSystemMode(
     @CurrentTenant() tenant: TenantContext,

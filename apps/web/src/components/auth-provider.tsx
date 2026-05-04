@@ -8,11 +8,17 @@ interface User {
   id: string
   name: string
   email: string
+  role: {
+    name: string
+    level: number
+    isOwner: boolean
+  }
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
+  isOwner: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -39,13 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const res = await auth.login({ email, password })
     setToken(res.accessToken)
-    // Decode JWT payload to get user id if user object not returned
-    let u: User
-    if (res.user && (res.user as Record<string, unknown>).id) {
-      u = res.user as unknown as User
-    } else {
-      const payload = JSON.parse(atob(res.accessToken.split('.')[1])) as { sub: string }
-      u = { id: payload.sub, name: email.split('@')[0], email }
+    const meData = await auth.me()
+    const u: User = {
+      id: meData.id,
+      name: meData.name,
+      email: meData.email,
+      role: meData.role,
     }
     localStorage.setItem('emas_user', JSON.stringify(u))
     setUser(u)
@@ -57,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login'
   }
 
-  return <LocaleProvider><AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
+  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
 }
 
 export function useAuth() {

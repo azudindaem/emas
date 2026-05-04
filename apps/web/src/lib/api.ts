@@ -55,6 +55,9 @@ export const auth = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  me: () =>
+    request<{ id: string; name: string; email: string; role: { name: string; level: number; isOwner: boolean } }>('/auth/me'),
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────

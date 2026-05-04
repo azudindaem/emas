@@ -32,7 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, isOwner } = useAuth()
   const { t } = useLocale()
 
   const isSettingsActive = pathname.startsWith('/dashboard/settings')
@@ -57,7 +57,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const settingsSubItems = [
     { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
     { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
-    { href: '/dashboard/settings/system', label: t.systemSettings?.title ?? 'System', icon: Wrench },
+    ...(isOwner ? [{ href: '/dashboard/settings/system', label: t.systemSettings?.title ?? 'System', icon: Wrench }] : []),
   ]
 
   return (
