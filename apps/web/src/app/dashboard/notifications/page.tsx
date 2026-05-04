@@ -36,7 +36,7 @@ interface WebhookItem {
   createdAt: string
 }
 
-type Tab = 'channels' | 'webhooks'
+type ChannelTab = 'channel' | 'emasNotify' | 'email' | 'sms' | 'whatsapp' | 'wsapme' | 'webhook'
 
 // ─── Event definitions ────────────────────────────────────────────────────────
 
@@ -362,7 +362,7 @@ export default function NotificationsPage() {
   const nt = t.notifications
   const wt = t.notifications.webhook
   const ct = t.notifications.channel
-  const [activeTab, setActiveTab] = useState<Tab>('channels')
+  const [activeChannelTab, setActiveChannelTab] = useState<ChannelTab>('channel')
   const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -476,9 +476,12 @@ export default function NotificationsPage() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'webhooks') loadWebhooks()
-    if (activeTab === 'channels') loadChannelConfigs()
-  }, [activeTab, loadWebhooks, loadChannelConfigs])
+    if (activeChannelTab === 'webhook') {
+      loadWebhooks()
+      return
+    }
+    loadChannelConfigs()
+  }, [activeChannelTab, loadWebhooks, loadChannelConfigs])
 
   const handleSave = async (data: Omit<WebhookItem, 'id' | 'createdAt' | 'lastTriggeredAt'>) => {
     setSaving(true)
@@ -546,9 +549,14 @@ export default function NotificationsPage() {
     }
   }
 
-  const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'channels', label: t.notifications.tabChannels, icon: Bell },
-    { key: 'webhooks', label: t.notifications.tabWebhooks, icon: Webhook },
+  const tabs: { key: ChannelTab; label: string; icon: React.ElementType }[] = [
+    { key: 'channel', label: 'Channel', icon: Bell },
+    { key: 'emasNotify', label: 'Emas Notify', icon: MessageCircle },
+    { key: 'email', label: 'Email', icon: Mail },
+    { key: 'sms', label: 'SMS', icon: MessageSquare },
+    { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { key: 'wsapme', label: 'Wsapme', icon: MessageCircle },
+    { key: 'webhook', label: 'Webhook', icon: Webhook },
   ]
 
   return (
@@ -583,9 +591,9 @@ export default function NotificationsPage() {
           <button
             key={key}
             type="button"
-            onClick={() => setActiveTab(key)}
+            onClick={() => setActiveChannelTab(key)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              activeTab === key
+              activeChannelTab === key
                 ? 'bg-white text-amber-700 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
@@ -597,7 +605,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Channels Tab */}
-      {activeTab === 'channels' && (
+      {activeChannelTab !== 'webhook' && (
         <div className="space-y-4">
           <div>
             <h3 className="text-base font-semibold text-slate-800">{nt.channelsTitle}</h3>
@@ -611,7 +619,29 @@ export default function NotificationsPage() {
           ) : (
             <div className="space-y-3">
 
+              {(activeChannelTab === 'channel' || activeChannelTab === 'emasNotify') && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+                      <MessageCircle size={16} />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-semibold text-emerald-900">Emas Notify</p>
+                      <p className="text-sm text-emerald-800">
+                        Emas Notify is a managed WhatsApp notification service that automates order updates for businesses.
+                        With no setup required, users can activate the service by topping up credits.
+                        Customers receive real-time WhatsApp notifications from EMAS official number based on order status changes.
+                      </p>
+                      <div className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+                        Pay per use: RM 0.080 / message
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ── Email ─────────────────────────────────────────── */}
+              {(activeChannelTab === 'channel' || activeChannelTab === 'email') && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -691,8 +721,10 @@ export default function NotificationsPage() {
                   </form>
                 )}
               </div>
+              )}
 
               {/* ── SMS ───────────────────────────────────────────── */}
+              {(activeChannelTab === 'channel' || activeChannelTab === 'sms') && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -759,8 +791,24 @@ export default function NotificationsPage() {
                   </form>
                 )}
               </div>
+              )}
+
+              {(activeChannelTab === 'channel' || activeChannelTab === 'whatsapp') && (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700">
+                      <MessageCircle size={16} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-indigo-900">WhatsApp Rasmi (WABA)</p>
+                      <p className="text-sm text-indigo-800">Coming soon. Official WhatsApp Business API integration will be available in upcoming release.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ── Wsapme ────────────────────────────────────────── */}
+              {(activeChannelTab === 'channel' || activeChannelTab === 'wsapme') && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
@@ -817,6 +865,7 @@ export default function NotificationsPage() {
                   </form>
                 )}
               </div>
+              )}
 
             </div>
           )}
@@ -824,7 +873,7 @@ export default function NotificationsPage() {
       )}
 
       {/* Webhooks Tab */}
-      {activeTab === 'webhooks' && (
+      {activeChannelTab === 'webhook' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
