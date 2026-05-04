@@ -138,7 +138,11 @@ packages/
 - **Wallet System** — internal wallet, transfers, reload, payout via Billplz
 - **Courier Integration** — Parcel Daily ✅ connected & tested; Ninjavan, POS Malaysia, J&T, DHL, Flash, GDEX, Skynet, Airpak pending
 - **Payment Gateways** — CHIP ✅ & Stripe ✅ integrated & tested; AhaPay, BayrCash, Billplz, ToyyibPay, HitPay, Atome, SenangPay pending
-- **Notifications** — Email, SMS, WhatsApp Official (WABA), WhatsApp Unofficial, Webhook
+- **Notifications** — Multi-channel notification system:
+  - Email (SMTP)
+  - SMS — AdaSMS, SMS Niaga
+  - WhatsApp Rasmi (WABA) — *Coming Soon*
+  - WhatsApp Tidak Rasmi — Wsapme
 - **RBAC** — unlimited custom roles, 1-15 user levels, KPI-based auto role upgrade/downgrade
 - **Brand Management** — multi-brand per tenant, separate payment collection, custom AWB
 - **Analytics** — real-time ranking, KPI metrics, ROI/ROAS, export CSV/Excel
