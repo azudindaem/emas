@@ -139,10 +139,14 @@ packages/
 - **Courier Integration** — Parcel Daily ✅ connected & tested; Ninjavan, POS Malaysia, J&T, DHL, Flash, GDEX, Skynet, Airpak pending
 - **Payment Gateways** — CHIP ✅ & Stripe ✅ integrated & tested; AhaPay, BayrCash, Billplz, ToyyibPay, HitPay, Atome, SenangPay pending
 - **Notifications** — Multi-channel notification system:
-  - Email (SMTP)
-  - SMS — AdaSMS, SMS Niaga
-  - WhatsApp Rasmi (WABA) — *Coming Soon*
-  - WhatsApp Tidak Rasmi — Wsapme
+
+  | Channel | Provider | Status |
+  |---|---|---|
+  | Webhook | — | ✅ Done |
+  | Email | SMTP | ❌ Pending |
+  | SMS | AdaSMS, SMS Niaga | ❌ Pending |
+  | WhatsApp Rasmi | WABA | 🔜 Coming Soon |
+  | WhatsApp Tidak Rasmi | Wsapme | ❌ Pending |
 - **RBAC** — unlimited custom roles, 1-15 user levels, KPI-based auto role upgrade/downgrade
 - **Brand Management** — multi-brand per tenant, separate payment collection, custom AWB
 - **Analytics** — real-time ranking, KPI metrics, ROI/ROAS, export CSV/Excel
