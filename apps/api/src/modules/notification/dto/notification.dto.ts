@@ -66,5 +66,25 @@ export class UpdateNotifyConfigDto {
 
   @IsOptional()
   @IsBoolean()
+  triggerPending?: boolean
+
+  @IsOptional()
+  @IsBoolean()
   triggerInTransit?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerOutForDelivery?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerCompleted?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerReturned?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  triggerRejected?: boolean
 }

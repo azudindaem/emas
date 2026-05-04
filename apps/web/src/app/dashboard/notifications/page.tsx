@@ -547,7 +547,7 @@ export default function NotificationsPage() {
   const [showTopUp, setShowTopUp] = useState(false)
 
   // ── Notify Config State ────────────────────────────────────────────────────
-  const [notifyConfigData, setNotifyConfigData] = useState<NotifyConfig>({ isEnabled: false, spamPrevention: true, triggerNewOrder: true, triggerInTransit: true })
+  const [notifyConfigData, setNotifyConfigData] = useState<NotifyConfig>({ isEnabled: false, spamPrevention: true, triggerNewOrder: true, triggerPending: false, triggerInTransit: true, triggerOutForDelivery: false, triggerCompleted: false, triggerReturned: false, triggerRejected: false })
   const [configSaving, setConfigSaving] = useState(false)
 
   // Email form
@@ -1155,21 +1155,120 @@ export default function NotificationsPage() {
                             </button>
                           </div>
 
-                          {/* Coming Soon items */}
-                          {[et.settings.triggerPending, et.settings.triggerOutForDelivery, et.settings.triggerCompleted, et.settings.triggerReturned, et.settings.triggerRejected].map((label) => (
-                            <div key={label} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3 opacity-50">
-                              <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-slate-100 p-2 text-slate-400"><Bell size={15} /></div>
-                                <div>
-                                  <p className="text-sm font-medium text-slate-500">{label}</p>
-                                  <p className="text-xs text-slate-400">{et.settings.comingSoon}</p>
-                                </div>
+                          {/* Pending */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-yellow-100 p-2 text-yellow-600"><AlertCircle size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerPending}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerPendingSub}</p>
                               </div>
-                              <button disabled className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-not-allowed rounded-full border-2 border-transparent bg-slate-200">
-                                <span className="inline-block h-5 w-5 translate-x-0 transform rounded-full bg-white shadow" />
-                              </button>
                             </div>
-                          ))}
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerPending: !notifyConfigData.triggerPending }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try { const saved = await notifyConfigApi.update({ triggerPending: next.triggerPending }); setNotifyConfigData(saved) }
+                                catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${notifyConfigData.triggerPending ? 'bg-amber-500' : 'bg-slate-200'} ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${notifyConfigData.triggerPending ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                          </div>
+
+                          {/* Out for Delivery */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-purple-100 p-2 text-purple-600"><Send size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerOutForDelivery}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerOutForDeliverySub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerOutForDelivery: !notifyConfigData.triggerOutForDelivery }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try { const saved = await notifyConfigApi.update({ triggerOutForDelivery: next.triggerOutForDelivery }); setNotifyConfigData(saved) }
+                                catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${notifyConfigData.triggerOutForDelivery ? 'bg-amber-500' : 'bg-slate-200'} ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${notifyConfigData.triggerOutForDelivery ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                          </div>
+
+                          {/* Completed */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-green-100 p-2 text-green-600"><CheckCircle2 size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerCompleted}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerCompletedSub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerCompleted: !notifyConfigData.triggerCompleted }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try { const saved = await notifyConfigApi.update({ triggerCompleted: next.triggerCompleted }); setNotifyConfigData(saved) }
+                                catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${notifyConfigData.triggerCompleted ? 'bg-amber-500' : 'bg-slate-200'} ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${notifyConfigData.triggerCompleted ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                          </div>
+
+                          {/* Returned */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-orange-100 p-2 text-orange-600"><History size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerReturned}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerReturnedSub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerReturned: !notifyConfigData.triggerReturned }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try { const saved = await notifyConfigApi.update({ triggerReturned: next.triggerReturned }); setNotifyConfigData(saved) }
+                                catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${notifyConfigData.triggerReturned ? 'bg-amber-500' : 'bg-slate-200'} ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${notifyConfigData.triggerReturned ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                          </div>
+
+                          {/* Rejected */}
+                          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-red-100 p-2 text-red-500"><XCircle size={15} /></div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{et.settings.triggerRejected}</p>
+                                <p className="text-xs text-slate-400">{et.settings.triggerRejectedSub}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={configSaving}
+                              onClick={async () => {
+                                const next = { ...notifyConfigData, triggerRejected: !notifyConfigData.triggerRejected }
+                                setNotifyConfigData(next)
+                                setConfigSaving(true)
+                                try { const saved = await notifyConfigApi.update({ triggerRejected: next.triggerRejected }); setNotifyConfigData(saved) }
+                                catch { showToast(nt.saveFail, 'error') } finally { setConfigSaving(false) }
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${notifyConfigData.triggerRejected ? 'bg-amber-500' : 'bg-slate-200'} ${configSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${notifyConfigData.triggerRejected ? 'translate-x-5' : 'translate-x-0'}`} /></button>
+                          </div>
                         </div>
                       </div>
                     </div>

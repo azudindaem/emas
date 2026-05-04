@@ -407,7 +407,12 @@ export interface NotifyConfig {
   isEnabled: boolean
   spamPrevention: boolean
   triggerNewOrder: boolean
+  triggerPending: boolean
   triggerInTransit: boolean
+  triggerOutForDelivery: boolean
+  triggerCompleted: boolean
+  triggerReturned: boolean
+  triggerRejected: boolean
 }
 
 export const notifyConfig = {

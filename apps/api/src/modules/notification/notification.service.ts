@@ -353,7 +353,12 @@ export class NotificationService implements OnModuleDestroy {
       isEnabled: false,
       spamPrevention: true,
       triggerNewOrder: true,
+      triggerPending: false,
       triggerInTransit: true,
+      triggerOutForDelivery: false,
+      triggerCompleted: false,
+      triggerReturned: false,
+      triggerRejected: false,
     }
   }
 

@@ -880,14 +880,19 @@ enum ShippingRateType {
 // ─────────────────────────────────────────────────────────
 
 model NotifyConfig {
-  id               String   @id @default(uuid())
-  tenantId         String   @unique
-  isEnabled        Boolean  @default(false)
-  spamPrevention   Boolean  @default(true)
-  triggerNewOrder  Boolean  @default(true)
-  triggerInTransit Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  tenantId               String   @unique
+  isEnabled              Boolean  @default(false)
+  spamPrevention         Boolean  @default(true)
+  triggerNewOrder        Boolean  @default(true)
+  triggerPending         Boolean  @default(false)
+  triggerInTransit       Boolean  @default(true)
+  triggerOutForDelivery  Boolean  @default(false)
+  triggerCompleted       Boolean  @default(false)
+  triggerReturned        Boolean  @default(false)
+  triggerRejected        Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
