@@ -13,6 +13,10 @@ import {
   Eye,
   EyeOff,
   Key,
+  Copy,
+  Check,
+  ExternalLink,
+  AlertTriangle,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,7 +57,10 @@ function gatewayFields(p: ReturnType<typeof useLocale>['t']['paymentSettings']):
       { key: 'publishable_key', labelKey: 'stripePublishableKey', type: 'text', placeholder: 'pk_...' },
       { key: 'secret_key', labelKey: 'stripeSecretKey', type: 'password', placeholder: 'sk_...' },
       { key: 'webhook_secret', labelKey: 'stripeWebhookSecret', type: 'password', placeholder: 'whsec_...' },
-      { key: 'environment', labelKey: 'envLabel', type: 'select', options: ENV_OPTIONS(p) },
+      { key: 'environment', labelKey: 'stripeEnvLabel', type: 'select', options: [
+        { value: 'sandbox', label: p.stripeEnvSandbox },
+        { value: 'production', label: p.stripeEnvProduction },
+      ]},
     ],
     AHAPAY: [
       { key: 'merchant_id', labelKey: 'ahapayMerchantId', type: 'text' },
@@ -122,6 +129,77 @@ function PasswordField({
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
+    </div>
+  )
+}
+
+// ─── Stripe Info Section ──────────────────────────────────────────────────────
+
+function StripeInfoSection({ environment, p }: { environment: string; p: Record<string, string> }) {
+  const [copied, setCopied] = useState(false)
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/v1/invoice/stripe-webhook`
+    : '/api/v1/invoice/stripe-webhook'
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(webhookUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const isSandbox = environment === 'sandbox'
+
+  return (
+    <div className="space-y-4">
+      {/* Webhook URL */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
+        <p className="text-sm font-medium text-gray-700">{p.stripeWebhookUrl}</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-xs bg-white border border-gray-200 rounded px-3 py-2 font-mono text-gray-800 break-all">
+            {webhookUrl}
+          </code>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-sm text-gray-700 transition-colors flex-shrink-0"
+          >
+            {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+            {copied ? p.stripeWebhookCopied : 'Copy'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">{p.stripeWebhookUrlHint}</p>
+        <a
+          href="https://dashboard.stripe.com/webhooks"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+        >
+          <ExternalLink size={12} />
+          {p.stripeDashboardLink}
+        </a>
+      </div>
+
+      {/* Environment status + hint */}
+      {isSandbox ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-blue-600 flex-shrink-0" />
+            <p className="text-sm font-medium text-blue-800">{p.stripeSandboxNote}</p>
+          </div>
+          <ul className="ml-6 space-y-1">
+            <li className="text-xs font-mono text-blue-700">{p.stripeSandboxCard1}</li>
+            <li className="text-xs font-mono text-blue-700">{p.stripeSandboxCard2}</li>
+            <li className="text-xs font-mono text-blue-700">{p.stripeSandboxCard3}</li>
+          </ul>
+          <p className="text-xs text-blue-600 ml-6">{p.stripeSandboxExpiry}</p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-amber-800">{p.stripeEnvWarning}</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -355,11 +433,19 @@ export default function PaymentSettingsPage() {
               )}
 
               {/* Sandbox warning for non-production */}
-              {activeTab !== 'GENERAL' && current.config.environment === 'sandbox' && (
+              {activeTab !== 'GENERAL' && current.config.environment === 'sandbox' && activeTab !== 'STRIPE' && (
                 <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
                   <Info size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-700">{p.sandboxHint}</p>
                 </div>
+              )}
+
+              {/* Stripe-specific section */}
+              {activeTab === 'STRIPE' && (
+                <StripeInfoSection
+                  environment={current.config.environment ?? 'sandbox'}
+                  p={p}
+                />
               )}
 
               {/* Enable toggle */}
