@@ -10,7 +10,7 @@ import { Wrench, Globe, AlertTriangle, CheckCircle2, Loader2, Save } from 'lucid
 export default function SystemSettingsPage() {
   const { t } = useLocale()
   const s = t.systemSettings
-  const { isOwner, loading: authLoading } = useAuth()
+  const { isSystemOwner, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [mode, setMode] = useState<SystemMode>('ACTIVE')
@@ -30,10 +30,10 @@ export default function SystemSettingsPage() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => {
-    if (!authLoading && !isOwner) {
+    if (!authLoading && !isSystemOwner) {
       router.replace('/dashboard')
     }
-  }, [authLoading, isOwner, router])
+  }, [authLoading, isSystemOwner, router])
 
   const handleSave = async () => {
     setSaving(true)

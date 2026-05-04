@@ -12,6 +12,7 @@ interface User {
     name: string
     level: number
     isOwner: boolean
+    isSystemOwner: boolean
   }
 }
 
@@ -19,6 +20,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   isOwner: boolean
+  isSystemOwner: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login'
   }
 
-  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
+  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, isSystemOwner: user?.role?.isSystemOwner ?? false, login, logout }}>{children}</AuthContext.Provider></LocaleProvider>
 }
 
 export function useAuth() {

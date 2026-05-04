@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
@@ -22,6 +23,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronDown,
   CreditCard,
   Wrench,
   ServerCog,
@@ -33,11 +35,19 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname()
-  const { user, logout, isOwner } = useAuth()
+  const { user, logout, isSystemOwner } = useAuth()
   const { t } = useLocale()
 
   const isSettingsActive = pathname.startsWith('/dashboard/settings')
   const isSystemActive = pathname.startsWith('/dashboard/system')
+  const [isMainOpen, setIsMainOpen] = useState(true)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true)
+  const [isSystemOpen, setIsSystemOpen] = useState(true)
+
+  useEffect(() => {
+    if (isSettingsActive) setIsSettingsOpen(true)
+    if (isSystemActive) setIsSystemOpen(true)
+  }, [isSettingsActive, isSystemActive])
 
   const navItems = [
     { href: '/dashboard', label: t.nav.overview, icon: LayoutDashboard },
@@ -96,7 +106,18 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
       {/* Nav */}
       <nav className={`flex-1 py-4 space-y-0.5 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={() => setIsMainOpen((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-orange-50"
+          >
+            <span>Main Menu</span>
+            <ChevronDown size={14} className={`ml-auto transition-transform ${isMainOpen ? 'rotate-0' : '-rotate-90'}`} />
+          </button>
+        )}
+
+        {(collapsed || isMainOpen) && navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link
@@ -128,19 +149,26 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             </Link>
           ) : (
             <>
-              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSettingsActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700'}`}>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen((v) => !v)}
+                className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSettingsActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700 hover:bg-orange-50'}`}
+              >
                 <Settings size={18} />
                 <span>{t.nav.settings}</span>
-              </div>
-              <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
-                {settingsSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
-              </div>
+                <ChevronDown size={14} className={`ml-auto transition-transform ${isSettingsOpen ? 'rotate-0' : '-rotate-90'}`} />
+              </button>
+              {isSettingsOpen && (
+                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+                  {settingsSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
+                </div>
+              )}
             </>
           )}
         </div>
 
         {/* System group — owner only */}
-        {isOwner && (
+        {isSystemOwner && (
           <div>
             {collapsed ? (
               <Link
@@ -154,13 +182,20 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               </Link>
             ) : (
               <>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSystemActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700'}`}>
+                <button
+                  type="button"
+                  onClick={() => setIsSystemOpen((v) => !v)}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${isSystemActive ? 'bg-primary/10 text-black font-semibold' : 'text-slate-700 hover:bg-orange-50'}`}
+                >
                   <ServerCog size={18} />
                   <span>System</span>
-                </div>
-                <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
-                  {systemSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
-                </div>
+                  <ChevronDown size={14} className={`ml-auto transition-transform ${isSystemOpen ? 'rotate-0' : '-rotate-90'}`} />
+                </button>
+                {isSystemOpen && (
+                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
+                    {systemSubItems.map(({ href, label, icon: Icon }) => subLink(href, label, Icon))}
+                  </div>
+                )}
               </>
             )}
           </div>

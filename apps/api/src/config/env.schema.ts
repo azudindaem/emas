@@ -6,6 +6,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   SYSTEM_MAINTENANCE_MODE: z.enum(['on', 'off']).default('off'),
+  SYSTEM_OWNER_EMAILS: z.string().default(''),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),

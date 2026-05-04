@@ -29,23 +29,23 @@ const statusColor: Record<string, string> = {
 }
 
 export default function SystemPlanPage() {
-  const { isOwner, loading: authLoading } = useAuth()
+  const { isSystemOwner, loading: authLoading } = useAuth()
   const router = useRouter()
   const [sub, setSub] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!authLoading && !isOwner) router.replace('/dashboard')
-  }, [authLoading, isOwner, router])
+    if (!authLoading && !isSystemOwner) router.replace('/dashboard')
+  }, [authLoading, isSystemOwner, router])
 
   useEffect(() => {
-    if (!isOwner) return
+    if (!isSystemOwner) return
     systemSettings.getSubscription().then((data) => {
       const typed = data as Subscription
       if (typed?.plan) setSub(typed)
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [isOwner])
+  }, [isSystemOwner])
 
   if (loading || authLoading) {
     return (

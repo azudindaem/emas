@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../modules/prisma/prisma.service'
 import { REQUIRED_PERMISSION_KEY } from '../decorators/require-permission.decorator'
 
@@ -14,7 +15,16 @@ export class RbacGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
   ) {}
+
+  private getSystemOwnerEmails(): string[] {
+    const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
+    return raw
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermission = this.reflector.getAllAndOverride<string>(
@@ -36,7 +46,7 @@ export class RbacGuard implements CanActivate {
 
     const membership = await this.prisma.membership.findFirst({
       where: { tenantId, userId },
-      include: { role: true },
+      include: { role: true, user: true },
     })
 
     if (!membership) {
@@ -46,6 +56,18 @@ export class RbacGuard implements CanActivate {
     const permissions = Array.isArray(membership.role.permissions)
       ? membership.role.permissions.map((p) => String(p))
       : []
+
+    const systemOwnerEmails = this.getSystemOwnerEmails()
+    const isSystemOwnerFromList = systemOwnerEmails.includes(
+      membership.user.email.toLowerCase(),
+    )
+    const isOwner = permissions.includes('*') || membership.role.level >= 100
+    const isSystemOwner =
+      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
+
+    if (isSystemOwner) {
+      return true
+    }
 
     if (!permissions.includes(requiredPermission) && !permissions.includes('*')) {
       throw new ForbiddenException(`Missing permission: ${requiredPermission}`)

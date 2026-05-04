@@ -105,6 +105,14 @@ export class AuthService {
     return { accessToken, refreshToken }
   }
 
+  private getSystemOwnerEmails(): string[] {
+    const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
+    return raw
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  }
+
   async getMe(userId: string, tenantId: string) {
     const membership = await this.prisma.membership.findFirst({
       where: { userId, tenantId },
@@ -116,6 +124,12 @@ export class AuthService {
       ? membership.role.permissions.map((p) => String(p))
       : []
     const isOwner = permissions.includes('*') || membership.role.level >= 100
+    const systemOwnerEmails = this.getSystemOwnerEmails()
+    const isSystemOwnerFromList = systemOwnerEmails.includes(
+      membership.user.email.toLowerCase(),
+    )
+    const isSystemOwner =
+      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
 
     return {
       id: membership.user.id,
@@ -125,6 +139,7 @@ export class AuthService {
         name: membership.role.name,
         level: membership.role.level,
         isOwner,
+        isSystemOwner,
       },
     }
   }

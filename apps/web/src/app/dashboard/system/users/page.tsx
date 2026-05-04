@@ -22,7 +22,7 @@ type Role = {
 }
 
 export default function SystemUsersPage() {
-  const { isOwner, loading: authLoading } = useAuth()
+  const { isSystemOwner, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [members, setMembers] = useState<Member[]>([])
@@ -31,17 +31,17 @@ export default function SystemUsersPage() {
   const [assigningId, setAssigningId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!authLoading && !isOwner) router.replace('/dashboard')
-  }, [authLoading, isOwner, router])
+    if (!authLoading && !isSystemOwner) router.replace('/dashboard')
+  }, [authLoading, isSystemOwner, router])
 
   useEffect(() => {
-    if (!isOwner) return
+    if (!isSystemOwner) return
     Promise.all([systemUsers.list(), systemUsers.listRoles()]).then(([m, r]) => {
       setMembers(m as Member[])
       setRoles(r as Role[])
       setLoading(false)
     })
-  }, [isOwner])
+  }, [isSystemOwner])
 
   const handleAssign = async (membershipId: string, roleId: string) => {
     setAssigningId(membershipId)

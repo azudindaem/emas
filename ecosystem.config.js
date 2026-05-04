@@ -28,6 +28,7 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: '8001',
         SYSTEM_MAINTENANCE_MODE: 'off',
+        SYSTEM_OWNER_EMAILS: '',
         DATABASE_URL: 'mysql://grouprint:12092k@localhost:3306/emas_db',
         REDIS_URL: 'redis://localhost:6379',
         JWT_SECRET: 'dev-emas-jwt-secret-must-be-32chars-min',

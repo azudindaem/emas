@@ -5,11 +5,23 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../modules/prisma/prisma.service'
 
 @Injectable()
 export class OwnerGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private getSystemOwnerEmails(): string[] {
+    const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
+    return raw
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
@@ -24,7 +36,7 @@ export class OwnerGuard implements CanActivate {
 
     const membership = await this.prisma.membership.findFirst({
       where: { tenantId, userId },
-      include: { role: true },
+      include: { role: true, user: true },
     })
 
     if (!membership) {
@@ -36,9 +48,15 @@ export class OwnerGuard implements CanActivate {
       : []
 
     const isOwner = permissions.includes('*') || membership.role.level >= 100
+    const systemOwnerEmails = this.getSystemOwnerEmails()
+    const isSystemOwnerFromList = systemOwnerEmails.includes(
+      membership.user.email.toLowerCase(),
+    )
+    const isSystemOwner =
+      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
 
-    if (!isOwner) {
-      throw new ForbiddenException('Owner access required')
+    if (!isSystemOwner) {
+      throw new ForbiddenException('System owner access required')
     }
 
     return true
