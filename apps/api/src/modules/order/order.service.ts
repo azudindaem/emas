@@ -225,8 +225,33 @@ export class OrderService {
     })
 
     const result = order as unknown as Record<string, unknown>
+
+    // Auto-generate CUSTOMER invoice
+    void this.prisma.invoice.create({
+      data: {
+        tenantId,
+        ownerId,
+        orderId: order.id,
+        type: 'CUSTOMER',
+        invoiceNo: this.generateInvoiceNo('CUSTOMER'),
+      },
+    }).catch(() => { /* ignore if fails, invoice can be generated manually */ })
+
     this.webhookDispatcher.dispatch(tenantId, 'order.created', this.serializeOrder(result))
     return result
+  }
+
+  private generateInvoiceNo(type: string): string {
+    const now = new Date()
+    const y = now.getUTCFullYear()
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(now.getUTCDate()).padStart(2, '0')
+    const h = String(now.getUTCHours()).padStart(2, '0')
+    const i = String(now.getUTCMinutes()).padStart(2, '0')
+    const s = String(now.getUTCSeconds()).padStart(2, '0')
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+    const prefix = type === 'SELLER' ? 'INV-S' : type === 'CUSTOMER' ? 'INV-C' : 'DN'
+    return `${prefix}-${y}${m}${d}-${h}${i}${s}-${rand}`
   }
 
   private serializeOrder(order: Record<string, unknown>): Record<string, unknown> {
