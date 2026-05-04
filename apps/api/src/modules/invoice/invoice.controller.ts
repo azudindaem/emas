@@ -60,4 +60,16 @@ export class InvoiceController {
     if (!invoice) throw new NotFoundException('Order not found')
     return invoice
   }
+
+  @Post(':id/payment-link')
+  @UseGuards(RbacGuard)
+  @RequirePermission('invoice.write')
+  async createPaymentLink(
+    @CurrentTenant() tenant: TenantContext,
+    @CurrentUser() user: JwtUser,
+    @Param('id') id: string,
+  ) {
+    const ownerId = await this.ownerResolver.resolveOwnerId(tenant.id, user.userId)
+    return this.invoiceService.createCustomerPaymentLink(tenant.id, ownerId, id)
+  }
 }

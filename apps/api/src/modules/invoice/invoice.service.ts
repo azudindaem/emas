@@ -1,6 +1,12 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { PaymentStatus } from '@emas/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateInvoiceDto, ListInvoiceQueryDto } from './dto/invoice.dto'
+
+const CHIP_BASE_URLS: Record<string, string> = {
+  production: 'https://gate.chip-in.asia',
+  sandbox: 'https://gate.chip-in.asia',
+}
 
 @Injectable()
 export class InvoiceService {
@@ -19,6 +25,7 @@ export class InvoiceService {
         ? {
             OR: [
               { invoiceNo: { contains: query.search } },
+              { orderId: { contains: query.search } },
               { order: { orderNo: { contains: query.search } } },
               { order: { customerName: { contains: query.search } } },
             ],
@@ -38,7 +45,7 @@ export class InvoiceService {
     ])
 
     return {
-      items,
+      items: items.map((item) => this.toInvoiceView(item as Record<string, unknown>)),
       meta: {
         page,
         limit,
@@ -49,15 +56,24 @@ export class InvoiceService {
   }
 
   async findOne(tenantId: string, ownerId: string, id: string): Promise<Record<string, unknown> | null> {
-    return this.prisma.invoice.findFirst({
+    const invoice = await this.prisma.invoice.findFirst({
       where: { id, tenantId, ownerId },
       include: { order: { include: { items: true, payments: true } } },
-    }) as Promise<Record<string, unknown> | null>
+    })
+    if (!invoice) return null
+    return this.toInvoiceView(invoice as unknown as Record<string, unknown>)
   }
 
   async create(tenantId: string, ownerId: string, dto: CreateInvoiceDto): Promise<Record<string, unknown> | null> {
     const order = await this.prisma.order.findFirst({
-      where: { id: dto.orderId, tenantId, ownerId },
+      where: {
+        tenantId,
+        ownerId,
+        OR: [
+          { id: dto.orderId },
+          { orderNo: dto.orderId },
+        ],
+      },
       select: { id: true },
     })
 
@@ -67,15 +83,128 @@ export class InvoiceService {
       data: {
         tenantId,
         ownerId,
-        orderId: dto.orderId,
+        orderId: order.id,
         type: dto.type,
         invoiceNo: this.generateInvoiceNo(dto.type),
         pdfUrl: dto.pdfUrl,
       },
-      include: { order: true },
+      include: { order: { include: { items: true, payments: true } } },
     })
 
-    return invoice as unknown as Record<string, unknown>
+    return this.toInvoiceView(invoice as unknown as Record<string, unknown>)
+  }
+
+  async createCustomerPaymentLink(
+    tenantId: string,
+    ownerId: string,
+    invoiceId: string,
+  ): Promise<{ gateway: string; checkoutUrl: string; purchaseId?: string }> {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, tenantId, ownerId },
+      include: { order: true },
+    })
+    if (!invoice) throw new NotFoundException('Invoice not found')
+    if (invoice.type !== 'CUSTOMER') {
+      throw new BadRequestException('Only CUSTOMER invoice can generate payment link')
+    }
+
+    const chip = await this.prisma.paymentGatewayConfig.findUnique({
+      where: { tenantId_gateway: { tenantId, gateway: 'CHIP' } },
+    })
+    if (!chip || !chip.isEnabled) {
+      throw new BadRequestException('CHIP gateway is not enabled')
+    }
+
+    const config = (chip.config ?? {}) as Record<string, unknown>
+    const secretKey = String(config.secret_key ?? '').trim()
+    const brandId = String(config.brand_id ?? '').trim()
+    const environment = String(config.environment ?? 'production').toLowerCase()
+    if (!secretKey || !brandId) {
+      throw new BadRequestException('CHIP brand_id/secret_key is missing in payment settings')
+    }
+
+    const total = Number(invoice.order.total ?? 0)
+    if (!Number.isFinite(total) || total <= 0) {
+      throw new BadRequestException('Invalid invoice total amount')
+    }
+
+    const baseUrl = CHIP_BASE_URLS[environment] ?? CHIP_BASE_URLS.production
+    const payload = {
+      brand_id: brandId,
+      reference: invoice.invoiceNo,
+      client: {
+        full_name: invoice.order.customerName || 'Customer',
+        email: invoice.order.customerEmail || 'customer@no-email.local',
+        phone: invoice.order.customerPhone || '',
+      },
+      purchase: {
+        currency: 'MYR',
+        products: [
+          {
+            name: `Invoice ${invoice.invoiceNo}`,
+            price: Math.round(total * 100),
+            quantity: 1,
+          },
+        ],
+      },
+      platform: 'api',
+      creator_agent: 'api',
+    }
+
+    const res = await fetch(`${baseUrl}/api/v1/purchases/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new BadRequestException(`CHIP create purchase failed ${res.status}: ${body}`)
+    }
+
+    const data = await res.json() as { checkout_url?: string; id?: string }
+    const checkoutUrl = String(data.checkout_url ?? '').trim()
+    if (!checkoutUrl) {
+      throw new BadRequestException('CHIP purchase created without checkout URL')
+    }
+
+    await this.prisma.orderPayment.create({
+      data: {
+        orderId: invoice.orderId,
+        amount: total,
+        method: 'CHIP',
+        status: PaymentStatus.UNPAID,
+        gatewayRef: String(data.id ?? invoice.invoiceNo),
+      },
+    })
+
+    return {
+      gateway: 'CHIP',
+      checkoutUrl,
+      purchaseId: data.id,
+    }
+  }
+
+  private toInvoiceView(invoice: Record<string, unknown>): Record<string, unknown> {
+    const order = (invoice.order as Record<string, unknown> | undefined) ?? {}
+    const subtotal = Number(order.subtotal ?? 0)
+    const shippingFee = Number(order.shippingFee ?? 0)
+    const discount = Number(order.discount ?? 0)
+    const total = Number(order.total ?? subtotal + shippingFee - discount)
+    const paymentStatus = String(order.paymentStatus ?? 'UNPAID')
+
+    return {
+      ...invoice,
+      status: paymentStatus,
+      subtotal,
+      tax: 0,
+      discount,
+      total,
+      items: (order.items as unknown[]) ?? (invoice.items as unknown[]) ?? [],
+      checkoutUrl: null,
+    }
   }
 
   private generateInvoiceNo(type: string): string {

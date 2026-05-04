@@ -181,7 +181,11 @@ export const invoices = {
     return request<{ items: unknown[]; meta: unknown }>(`/invoice${q}`)
   },
   get: (id: string) => request<unknown>(`/invoice/${id}`),
-  generate: (data: unknown) => request<unknown>('/invoice/generate', { method: 'POST', body: JSON.stringify(data) }),
+  generate: (data: unknown) => request<unknown>('/invoice', { method: 'POST', body: JSON.stringify(data) }),
+  createPaymentLink: (id: string) =>
+    request<{ gateway: string; checkoutUrl: string; purchaseId?: string }>(`/invoice/${id}/payment-link`, {
+      method: 'POST',
+    }),
 }
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────

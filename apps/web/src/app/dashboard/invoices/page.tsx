@@ -25,6 +25,7 @@ interface Invoice {
   discount: string | number
   total: string | number
   createdAt: string
+  checkoutUrl?: string | null
   order?: {
     orderNo: string
     customerName: string
@@ -36,7 +37,14 @@ interface Invoice {
 const INVOICE_TYPES = ['SELLER', 'CUSTOMER']
 const typeColor: Record<string, 'blue' | 'green'> = { SELLER: 'blue', CUSTOMER: 'green' }
 const statusColor: Record<string, 'yellow' | 'green' | 'red' | 'gray' | 'blue'> = {
-  DRAFT: 'yellow', SENT: 'blue', PAID: 'green', CANCELLED: 'red', OVERDUE: 'red',
+  DRAFT: 'yellow',
+  SENT: 'blue',
+  PAID: 'green',
+  CANCELLED: 'red',
+  OVERDUE: 'red',
+  UNPAID: 'red',
+  PARTIAL: 'yellow',
+  REFUNDED: 'gray',
 }
 
 export default function InvoicesPage() {
@@ -50,6 +58,7 @@ export default function InvoicesPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ orderId: '', type: 'CUSTOMER' })
   const [saving, setSaving] = useState(false)
+  const [linkLoading, setLinkLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<Invoice | null>(null)
 
@@ -77,6 +86,20 @@ export default function InvoicesPage() {
   const openDetail = async (id: string) => {
     const inv = await invoicesApi.get(id) as Invoice
     setSelected(inv)
+  }
+
+  const handleCreatePaymentLink = async (invoiceId: string) => {
+    setLinkLoading(true)
+    setError('')
+    try {
+      const res = await invoicesApi.createPaymentLink(invoiceId)
+      setSelected((prev) => (prev && prev.id === invoiceId ? { ...prev, checkoutUrl: res.checkoutUrl } : prev))
+      window.open(res.checkoutUrl, '_blank', 'noopener,noreferrer')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Gagal jana payment link')
+    } finally {
+      setLinkLoading(false)
+    }
   }
 
   return (
@@ -210,6 +233,25 @@ export default function InvoicesPage() {
                 <span>{t.common.total}</span><span>RM {Number(selected.total).toFixed(2)}</span>
               </div>
             </div>
+            {selected.type === 'CUSTOMER' && selected.status !== 'PAID' && (
+              <div className="px-5 pb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selected.checkoutUrl) {
+                      window.open(selected.checkoutUrl, '_blank', 'noopener,noreferrer')
+                      return
+                    }
+                    void handleCreatePaymentLink(selected.id)
+                  }}
+                  disabled={linkLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-black font-semibold rounded-lg text-sm disabled:opacity-50 hover:bg-primary-dark"
+                >
+                  {linkLoading && <Loader2 size={14} className="animate-spin" />}
+                  {selected.checkoutUrl ? 'Open Payment Page' : 'Generate Payment Link'}
+                </button>
+              </div>
+            )}
             <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
               {t.invoices.generated}: {new Date(selected.createdAt).toLocaleString('en-MY')}
             </div>
