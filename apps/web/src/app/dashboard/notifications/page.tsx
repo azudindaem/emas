@@ -368,6 +368,7 @@ export default function NotificationsPage() {
   const nt = t.notifications
   const wt = t.notifications.webhook
   const ct = t.notifications.channel
+  const et = t.notifications.emasNotify
   const [activeChannelTab, setActiveChannelTab] = useState<ChannelTab>('channel')
   const [activeEmasNotifyTab, setActiveEmasNotifyTab] = useState<EmasNotifyTab>('dashboard')
   const [webhookList, setWebhookList] = useState<WebhookItem[]>([])
@@ -555,13 +556,13 @@ export default function NotificationsPage() {
   }
 
   const tabs: { key: ChannelTab; label: string; icon: React.ElementType }[] = [
-    { key: 'channel', label: 'Channel', icon: Bell },
-    { key: 'emasNotify', label: 'Emas Notify', icon: MessageCircle },
-    { key: 'email', label: 'Email', icon: Mail },
-    { key: 'sms', label: 'SMS', icon: MessageSquare },
-    { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
-    { key: 'wsapme', label: 'Wsapme', icon: MessageCircle },
-    { key: 'webhook', label: 'Webhook', icon: Webhook },
+    { key: 'channel', label: nt.tabs.channel, icon: Bell },
+    { key: 'emasNotify', label: nt.tabs.emasNotify, icon: MessageCircle },
+    { key: 'email', label: nt.tabs.email, icon: Mail },
+    { key: 'sms', label: nt.tabs.sms, icon: MessageSquare },
+    { key: 'whatsapp', label: nt.tabs.whatsapp, icon: MessageCircle },
+    { key: 'wsapme', label: nt.tabs.wsapme, icon: MessageCircle },
+    { key: 'webhook', label: nt.tabs.webhook, icon: Webhook },
   ]
 
   return (
@@ -626,7 +627,7 @@ export default function NotificationsPage() {
 
               {activeChannelTab === 'channel' && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-                  Ruangan ini dikhaskan untuk info dashboard channel. Buat masa ini, pilih tab channel di atas untuk terus configure detail.
+                  {nt.channelPlaceholder}
                 </div>
               )}
 
@@ -638,13 +639,13 @@ export default function NotificationsPage() {
                         <Zap size={22} />
                       </div>
                       <div>
-                        <h3 className="text-3xl font-bold text-slate-900">Emas Notify</h3>
-                        <p className="text-slate-600">Managed Official WhatsApp notification service</p>
+                        <h3 className="text-3xl font-bold text-slate-900">{et.title}</h3>
+                        <p className="text-slate-600">{et.subtitle}</p>
                       </div>
                     </div>
                     <button className="flex items-center gap-2 rounded-xl bg-[#1E5B8C] px-6 py-2 font-medium text-white hover:bg-[#174A72]">
                       <CreditCard size={16} />
-                      Top Up Credits
+                      {et.topUpCredits}
                     </button>
                   </div>
 
@@ -654,12 +655,9 @@ export default function NotificationsPage() {
                         <Info size={18} />
                       </div>
                       <div className="pr-4">
-                        <h4 className="mb-1 font-semibold text-slate-900">What is Emas Notify?</h4>
+                        <h4 className="mb-1 font-semibold text-slate-900">{et.whatIsTitle}</h4>
                         <p className="text-sm text-slate-600">
-                          Emas Notify is a managed WhatsApp notification service that automates order updates for businesses.
-                          No setup required, just top up credits and enable notifications. Your customers will automatically
-                          receive WhatsApp updates from EMAS official WhatsApp number when their order status changes
-                          (new order, in transit, delivered, etc.). Pay only for what you use at <span className="font-semibold">RM 0.080 per message</span>.
+                          {et.whatIsDescription} <span className="font-semibold">{et.ratePerMessage}</span>.
                         </p>
                       </div>
                     </div>
@@ -676,7 +674,7 @@ export default function NotificationsPage() {
                       }`}
                     >
                       <TrendingUp size={16} />
-                      Dashboard
+                      {et.tabs.dashboard}
                     </button>
                     <button
                       type="button"
@@ -688,7 +686,7 @@ export default function NotificationsPage() {
                       }`}
                     >
                       <Bell size={16} />
-                      Settings
+                      {et.tabs.settings}
                     </button>
                     <button
                       type="button"
@@ -700,7 +698,7 @@ export default function NotificationsPage() {
                       }`}
                     >
                       <History size={16} />
-                      History
+                      {et.tabs.history}
                     </button>
                     <button
                       type="button"
@@ -712,7 +710,7 @@ export default function NotificationsPage() {
                       }`}
                     >
                       <Wallet size={16} />
-                      Credit History
+                      {et.tabs.creditHistory}
                     </button>
                   </div>
 
@@ -722,52 +720,52 @@ export default function NotificationsPage() {
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="rounded-lg border border-[#C8DBEC] bg-[#E8F1F8] p-2 text-[#1E5B8C]"><Wallet size={18} /></div>
-                            <span className="text-slate-500">Credit Balance</span>
+                            <span className="text-slate-500">{et.stats.creditBalance}</span>
                           </div>
                           <div className="text-4xl font-bold text-slate-900">RM 0.00</div>
-                          <p className="mt-2 text-sm text-slate-500">~0 messages remaining</p>
+                          <p className="mt-2 text-sm text-slate-500">{et.stats.messagesRemaining}</p>
                         </div>
 
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="rounded-lg border border-[#D5E2EC] bg-[#EEF4F8] p-2 text-blue-500"><Send size={18} /></div>
-                            <span className="text-slate-500">Sent (30 days)</span>
+                            <span className="text-slate-500">{et.stats.sent30Days}</span>
                           </div>
                           <div className="text-4xl font-bold text-slate-900">0</div>
-                          <p className="mt-2 text-sm text-slate-500">0 read</p>
+                          <p className="mt-2 text-sm text-slate-500">{et.stats.readCount}</p>
                         </div>
 
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="rounded-lg bg-green-100 p-2 text-green-600"><CheckCircle2 size={18} /></div>
-                            <span className="text-slate-500">Success Rate</span>
+                            <span className="text-slate-500">{et.stats.successRate}</span>
                           </div>
                           <div className="text-4xl font-bold text-slate-900">0%</div>
-                          <p className="mt-2 text-sm text-slate-500">0 failed</p>
+                          <p className="mt-2 text-sm text-slate-500">{et.stats.failedCount}</p>
                         </div>
 
                         <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="rounded-lg bg-amber-100 p-2 text-amber-600"><TrendingUp size={18} /></div>
-                            <span className="text-slate-500">Spent (30 days)</span>
+                            <span className="text-slate-500">{et.stats.spent30Days}</span>
                           </div>
                           <div className="text-4xl font-bold text-slate-900">RM 0.00</div>
-                          <p className="mt-2 text-sm text-slate-500">@ RM 0.080/message</p>
+                          <p className="mt-2 text-sm text-slate-500">{et.stats.spentRate}</p>
                         </div>
                       </div>
 
                       <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
                         <div className="mb-4 flex items-center justify-between">
-                          <h4 className="text-lg font-semibold text-slate-900">Service Status</h4>
-                          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">Inactive</div>
+                          <h4 className="text-lg font-semibold text-slate-900">{et.serviceStatus.title}</h4>
+                          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">{et.serviceStatus.inactive}</div>
                         </div>
-                        <p className="mb-4 text-sm text-slate-600">Enable Emas Notify in Settings to start sending automated notifications.</p>
+                        <p className="mb-4 text-sm text-slate-600">{et.serviceStatus.description}</p>
                         <button
                           type="button"
                           onClick={() => setActiveEmasNotifyTab('settings')}
                           className="text-sm font-medium text-[#1E5B8C] hover:text-[#174A72]"
                         >
-                          Go to Settings -&gt;
+                          {et.serviceStatus.goToSettings}
                         </button>
                       </div>
                     </div>
@@ -775,22 +773,22 @@ export default function NotificationsPage() {
 
                   {activeEmasNotifyTab === 'settings' && (
                     <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Settings</h4>
-                      <p className="text-sm text-slate-600">Configuration panel for Emas Notify will be enabled here.</p>
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">{et.panels.settingsTitle}</h4>
+                      <p className="text-sm text-slate-600">{et.panels.settingsDescription}</p>
                     </div>
                   )}
 
                   {activeEmasNotifyTab === 'history' && (
                     <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Recent Messages</h4>
-                      <p className="py-8 text-center text-slate-500">No messages sent yet</p>
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">{et.panels.historyTitle}</h4>
+                      <p className="py-8 text-center text-slate-500">{et.panels.historyEmpty}</p>
                     </div>
                   )}
 
                   {activeEmasNotifyTab === 'creditHistory' && (
                     <div className="rounded-2xl border border-slate-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-                      <h4 className="mb-2 text-lg font-semibold text-slate-900">Credit History</h4>
-                      <p className="py-8 text-center text-slate-500">No credit transactions yet</p>
+                      <h4 className="mb-2 text-lg font-semibold text-slate-900">{et.panels.creditHistoryTitle}</h4>
+                      <p className="py-8 text-center text-slate-500">{et.panels.creditHistoryEmpty}</p>
                     </div>
                   )}
                 </div>
