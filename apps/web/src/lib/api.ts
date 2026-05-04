@@ -16,16 +16,17 @@ export function clearToken() {
 
 async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit & { skipAuth?: boolean } = {},
 ): Promise<T> {
+  const { skipAuth, ...fetchOptions } = options
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> | undefined),
+    ...(fetchOptions.headers as Record<string, string> | undefined),
   }
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (token && !skipAuth) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  const res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }))
@@ -293,9 +294,49 @@ export const commission = {
 
 // ─── Team ─────────────────────────────────────────────────────────────────────
 
+export interface TeamMember {
+  id: string
+  user: { id: string; name: string; email: string; avatarUrl?: string }
+  role: { id: string; name: string; level: number }
+  joinedAt: string
+}
+
+export interface TeamInvite {
+  id: string
+  email: string
+  role: { id: string; name: string }
+  invitedByUser: { name: string; email: string }
+  createdAt: string
+  expiresAt: string
+  acceptedAt: string | null
+}
+
+export interface TeamRole {
+  id: string
+  name: string
+  level: number
+  permissions: string[]
+  _count?: { memberships: number }
+}
+
 export const team = {
-  members: () => request<unknown[]>('/user/members'),
-  roles: () => request<unknown[]>('/user/roles'),
+  members: () => request<TeamMember[]>('/user/members'),
+  roles: () => request<TeamRole[]>('/user/roles'),
+  createRole: (data: { name: string; level?: number; permissions?: string[] }) =>
+    request<TeamRole>('/user/roles', { method: 'POST', body: JSON.stringify(data) }),
+  assignRole: (membershipId: string, roleId: string) =>
+    request('/user/members/' + membershipId + '/role', { method: 'PATCH', body: JSON.stringify({ roleId }) }),
+  removeMember: (membershipId: string) =>
+    request('/user/members/' + membershipId, { method: 'DELETE' }),
+  invites: () => request<TeamInvite[]>('/user/invites'),
+  sendInvite: (email: string, roleId: string) =>
+    request('/user/invite', { method: 'POST', body: JSON.stringify({ email, roleId }) }),
+  cancelInvite: (id: string) =>
+    request('/user/invites/' + id, { method: 'DELETE' }),
+  getInvite: (token: string) =>
+    request<{ email: string; role: string; tenantName: string; expiresAt: string }>('/invite/' + token, { skipAuth: true }),
+  acceptInvite: (token: string, data: { name: string; password: string }) =>
+    request('/invite/' + token + '/accept', { method: 'POST', body: JSON.stringify(data), skipAuth: true }),
 }
 
 // ─── Customers ────────────────────────────────────────────────────────────────

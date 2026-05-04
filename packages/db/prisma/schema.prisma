@@ -51,6 +51,7 @@ model Tenant {
   notifyCredit         NotifyCredit?
   notifyConfig         NotifyConfig?
   signupTacs           SignupTac[]
+  teamInvites          TeamInvite[]
 
   @@index([slug])
 }
@@ -165,6 +166,7 @@ model User {
   ownedInvoices   Invoice[]    @relation("InvoiceOwner")
   wallet      Wallet?
   auditLogs   AuditLog[]
+  teamInvitesSent TeamInvite[] @relation("TeamInvitesSent")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -202,6 +204,7 @@ model Role {
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   memberships Membership[]
   automations RoleAutomation[]
+  teamInvites TeamInvite[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -913,6 +916,29 @@ model SignupTac {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, email])
+}
+
+// ─────────────────────────────────────────────────────────
+// TEAM INVITE
+// ─────────────────────────────────────────────────────────
+
+model TeamInvite {
+  id              String    @id @default(uuid())
+  tenantId        String
+  email           String
+  roleId          String
+  token           String    @unique @default(uuid())
+  invitedByUserId String
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role          Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  invitedByUser User   @relation("TeamInvitesSent", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([token])
 }
 
 // ─────────────────────────────────────────────────────────

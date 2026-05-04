@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { CreateRoleDto, UpdateProfileDto } from './dto/user.dto'
+import * as crypto from 'crypto'
+import * as nodemailer from 'nodemailer'
+import { CreateRoleDto, InviteMemberDto, AcceptInviteDto, UpdateProfileDto } from './dto/user.dto'
 
 @Injectable()
 export class UserService {
@@ -184,4 +186,153 @@ export class UserService {
 
     return updated as unknown as Record<string, unknown>
   }
+
+  async removeMember(tenantId: string, membershipId: string, requestingUserId: string) {
+    const membership = await this.prisma.membership.findFirst({ where: { id: membershipId, tenantId }, include: { user: true } })
+    if (!membership) throw new NotFoundException('Member not found')
+    if (membership.user.id === requestingUserId) throw new BadRequestException('You cannot remove yourself')
+    await this.prisma.membership.delete({ where: { id: membershipId } })
+    return { success: true }
+  }
+
+  async inviteMember(tenantId: string, invitedByUserId: string, dto: InviteMemberDto) {
+    // Check not already a member
+    const existing = await this.prisma.user.findFirst({ where: { tenantId, email: dto.email } })
+    if (existing) throw new ConflictException('User is already a member of this team')
+
+    // Check role exists
+    const role = await this.prisma.role.findFirst({ where: { id: dto.roleId, tenantId } })
+    if (!role) throw new NotFoundException('Role not found')
+
+    // Get system email config
+    const emailCfg = await this.prisma.systemEmailConfig.findUnique({ where: { tenantId } })
+    if (!emailCfg || !emailCfg.isEnabled) {
+      throw new BadRequestException('System email not configured. Please set up SMTP in System Email settings.')
+    }
+
+    // Invalidate previous pending invites for same email
+    await this.prisma.teamInvite.updateMany({
+      where: { tenantId, email: dto.email, acceptedAt: null },
+      data: { expiresAt: new Date() }, // expire them
+    })
+
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours
+
+    const invite = await this.prisma.teamInvite.create({
+      data: { tenantId, email: dto.email, roleId: dto.roleId, invitedByUserId, expiresAt },
+      include: { role: true, invitedByUser: true },
+    })
+
+    // Get tenant branding for email
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } })
+    const tenantName = tenant?.name ?? 'EMAS'
+    const inviterName = invite.invitedByUser.name
+
+    // Build accept URL — use the request's domain (same as tenant domain)
+    const domain = await this.prisma.tenantDomain.findFirst({ where: { tenantId, isPrimary: true } })
+    const baseUrl = domain ? `https://${domain.domain}` : 'https://emas.my'
+    const acceptUrl = `${baseUrl}/accept-invite/${invite.token}`
+
+    const transporter = nodemailer.createTransport({
+      host: emailCfg.host,
+      port: emailCfg.port,
+      secure: emailCfg.secure,
+      auth: { user: emailCfg.user, pass: emailCfg.pass },
+    })
+
+    try {
+      await transporter.sendMail({
+        from: emailCfg.from,
+        to: dto.email,
+        subject: `Jemputan ke ${tenantName} — EMAS`,
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f8fafc;border-radius:12px;">
+            <h2 style="color:#1e293b;margin:0 0 8px">Anda dijemput!</h2>
+            <p style="color:#475569;margin:0 0 16px"><strong>${inviterName}</strong> telah menjemput anda untuk menyertai pasukan <strong>${tenantName}</strong> sebagai <strong>${invite.role.name}</strong>.</p>
+            <p style="color:#475569;margin:0 0 24px">Klik butang di bawah untuk menerima jemputan. Jemputan ini sah selama <strong>48 jam</strong>.</p>
+            <a href="${acceptUrl}" style="display:inline-block;background:#d4a017;color:#000;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;">Terima Jemputan</a>
+            <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Atau salin pautan ini: <br/>${acceptUrl}</p>
+            <p style="color:#cbd5e1;font-size:11px;margin:12px 0 0">Jika anda tidak mengharapkan jemputan ini, abaikan e-mel ini.</p>
+          </div>
+        `,
+      })
+    } catch (err) {
+      // Delete invite if email fails
+      await this.prisma.teamInvite.delete({ where: { id: invite.id } })
+      throw new BadRequestException(`Failed to send invite email: ${(err as Error).message}`)
+    }
+
+    return {
+      id: invite.id,
+      email: invite.email,
+      role: { id: role.id, name: role.name },
+      expiresAt: invite.expiresAt,
+    }
+  }
+
+  async listInvites(tenantId: string): Promise<Record<string, unknown>[]> {
+    const rows = await this.prisma.teamInvite.findMany({
+      where: { tenantId, acceptedAt: null, expiresAt: { gt: new Date() } },
+      include: { role: true, invitedByUser: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    return rows as unknown as Record<string, unknown>[]
+  }
+
+  async cancelInvite(tenantId: string, inviteId: string) {
+    const invite = await this.prisma.teamInvite.findFirst({ where: { id: inviteId, tenantId } })
+    if (!invite) throw new NotFoundException('Invite not found')
+    await this.prisma.teamInvite.delete({ where: { id: inviteId } })
+    return { success: true }
+  }
+
+  async getInviteByToken(token: string) {
+    const invite = await this.prisma.teamInvite.findUnique({
+      where: { token },
+      include: { role: true, tenant: { select: { name: true } } },
+    })
+    if (!invite) throw new NotFoundException('Invalid invite link')
+    if (invite.acceptedAt) throw new BadRequestException('Invite already accepted')
+    if (invite.expiresAt < new Date()) throw new BadRequestException('Invite has expired')
+    return {
+      email: invite.email,
+      role: invite.role.name,
+      tenantName: invite.tenant.name,
+      expiresAt: invite.expiresAt,
+    }
+  }
+
+  async acceptInvite(dto: AcceptInviteDto) {
+    const invite = await this.prisma.teamInvite.findUnique({
+      where: { token: dto.token },
+      include: { role: true },
+    })
+    if (!invite) throw new NotFoundException('Invalid invite link')
+    if (invite.acceptedAt) throw new BadRequestException('Invite already accepted')
+    if (invite.expiresAt < new Date()) throw new BadRequestException('Invite has expired')
+
+    const tenantId = invite.tenantId
+
+    // Check email not already member
+    const existing = await this.prisma.user.findFirst({ where: { tenantId, email: invite.email } })
+    if (existing) throw new ConflictException('Email already registered in this team')
+
+    const passwordHash = crypto.createHash('sha256').update(dto.password).digest('hex')
+
+    const user = await this.prisma.user.create({
+      data: { tenantId, name: dto.name, email: invite.email, passwordHash },
+    })
+
+    await this.prisma.membership.create({
+      data: { tenantId, userId: user.id, roleId: invite.roleId, level: invite.role.level },
+    })
+
+    await this.prisma.teamInvite.update({
+      where: { id: invite.id },
+      data: { acceptedAt: new Date() },
+    })
+
+    return { success: true, email: invite.email }
+  }
 }
+

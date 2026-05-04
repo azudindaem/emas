@@ -1,4 +1,4 @@
-import { IsArray, IsDateString, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator'
+import { IsArray, IsDateString, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator'
 
 export class CreateRoleDto {
   @IsString()
@@ -91,4 +91,27 @@ export class UpdateProfileDto {
   @MaxLength(120)
   country?: string
 
+}
+
+export class InviteMemberDto {
+  @IsEmail()
+  email: string
+
+  @IsString()
+  @IsNotEmpty()
+  roleId: string
+}
+
+export class AcceptInviteDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string
+
+  @IsString()
+  @IsNotEmpty()
+  name: string
+
+  @IsString()
+  @MinLength(8)
+  password: string
 }
