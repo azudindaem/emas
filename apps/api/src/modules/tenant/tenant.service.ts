@@ -1,11 +1,19 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../prisma/prisma.service'
 
 export type SystemMode = 'ACTIVE' | 'MAINTENANCE'
 
 @Injectable()
 export class TenantService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private isEnvMaintenanceEnabled(): boolean {
+    return this.config.get<string>('SYSTEM_MAINTENANCE_MODE', 'off').toLowerCase() === 'on'
+  }
 
   async findOne(id: string): Promise<Record<string, unknown> | null> {
     return this.prisma.tenant.findUnique({
@@ -15,6 +23,10 @@ export class TenantService {
   }
 
   async setSystemMode(tenantId: string, mode: SystemMode): Promise<{ mode: SystemMode }> {
+    if (this.isEnvMaintenanceEnabled()) {
+      throw new BadRequestException('System mode is locked by SYSTEM_MAINTENANCE_MODE=on')
+    }
+
     if (mode !== 'ACTIVE' && mode !== 'MAINTENANCE') {
       throw new BadRequestException('Invalid mode. Must be ACTIVE or MAINTENANCE.')
     }
@@ -26,6 +38,10 @@ export class TenantService {
   }
 
   async getSystemMode(tenantId: string): Promise<{ mode: SystemMode }> {
+    if (this.isEnvMaintenanceEnabled()) {
+      return { mode: 'MAINTENANCE' }
+    }
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { status: true },

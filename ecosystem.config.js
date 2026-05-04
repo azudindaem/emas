@@ -10,6 +10,7 @@ module.exports = {
         PORT: '8000',
         HOSTNAME: '127.0.0.1',
         NEXT_PUBLIC_API_URL: 'https://dev.emas.my/api',
+        NEXT_PUBLIC_SYSTEM_MAINTENANCE_MODE: 'off',
         DATABASE_URL: 'mysql://grouprint:12092k@localhost:3306/emas_db',
         REDIS_URL: 'redis://localhost:6379',
       },
@@ -26,6 +27,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: '8001',
+        SYSTEM_MAINTENANCE_MODE: 'off',
         DATABASE_URL: 'mysql://grouprint:12092k@localhost:3306/emas_db',
         REDIS_URL: 'redis://localhost:6379',
         JWT_SECRET: 'dev-emas-jwt-secret-must-be-32chars-min',

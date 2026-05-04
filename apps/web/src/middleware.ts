@@ -7,6 +7,7 @@ const MAINTENANCE_BYPASS_PATHS = ['/maintenance', '/dashboard', '/login', '/regi
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const host = request.headers.get('host') ?? ''
+  const hostname = host.split(':')[0]
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-forwarded-host', host)
 
@@ -15,7 +16,10 @@ export async function middleware(request: NextRequest) {
 
   if (!isBypassed) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://127.0.0.1:8001'
+      const apiBase = hostname.startsWith('dev.')
+        ? 'http://127.0.0.1:8001'
+        : 'http://127.0.0.1:8011'
+
       const res = await fetch(`${apiBase}/api/v1/tenant/system-mode/status`, {
         headers: { host, 'x-forwarded-host': host },
         cache: 'no-store',
@@ -23,9 +27,8 @@ export async function middleware(request: NextRequest) {
       if (res.ok) {
         const data = (await res.json()) as { mode: string }
         if (data.mode === 'MAINTENANCE') {
-          const url = request.nextUrl.clone()
-          url.pathname = '/maintenance'
-          return NextResponse.redirect(url)
+          const maintenanceUrl = new URL('/maintenance', `https://${host}`)
+          return NextResponse.redirect(maintenanceUrl)
         }
       }
     } catch {

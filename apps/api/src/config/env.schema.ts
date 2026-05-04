@@ -5,6 +5,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
+  SYSTEM_MAINTENANCE_MODE: z.enum(['on', 'off']).default('off'),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
