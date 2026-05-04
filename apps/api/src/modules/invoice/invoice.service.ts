@@ -113,9 +113,17 @@ export class InvoiceService {
       where: { tenantId_gateway: { tenantId, gateway: 'GENERAL' } },
     })
     const generalCfg = (generalConfig?.config ?? {}) as Record<string, unknown>
-    const defaultGateway = String(generalCfg.defaultGateway ?? 'CHIP').toUpperCase() || 'CHIP'
-    // Graceful fallback: until other gateways are implemented, always route to CHIP.
-    const gatewayToUse = 'CHIP'
+    const defaultGateway = String(generalCfg.defaultGateway ?? '').trim().toUpperCase()
+
+    if (!defaultGateway) {
+      throw new BadRequestException('Default payment gateway is not configured. Please set it in Payment Settings.')
+    }
+
+    if (defaultGateway !== 'CHIP') {
+      throw new BadRequestException(`Payment gateway "${defaultGateway}" is not yet supported. Please set default to CHIP in Payment Settings.`)
+    }
+
+    const gatewayToUse = defaultGateway
 
     const chip = await this.prisma.paymentGatewayConfig.findUnique({
       where: { tenantId_gateway: { tenantId, gateway: gatewayToUse } },
