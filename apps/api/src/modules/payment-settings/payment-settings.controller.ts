@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { AuthGuard } from '@nestjs/passport'
 import { PaymentSettingsService } from './payment-settings.service'
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
-import { UpsertPaymentGatewayDto } from './dto/payment-settings.dto'
+import { UpsertPaymentGatewayDto, FetchChipPublicKeyDto } from './dto/payment-settings.dto'
 
 @ApiTags('payment-settings')
 @ApiBearerAuth()
@@ -30,5 +30,11 @@ export class PaymentSettingsController {
     @Body() dto: UpsertPaymentGatewayDto,
   ) {
     return this.service.upsert(tenant.id, gateway, dto)
+  }
+
+  @Post('chip/public-key')
+  fetchChipPublicKey(@Body() dto: FetchChipPublicKeyDto): Promise<{ publicKey: string }> {
+    return this.service.fetchChipPublicKey(dto.brandId, dto.environment ?? 'production')
+      .then((publicKey) => ({ publicKey }))
   }
 }

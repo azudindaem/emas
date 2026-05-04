@@ -7,3 +7,12 @@ export class UpsertPaymentGatewayDto {
   @IsObject()
   config: Record<string, unknown>
 }
+
+export class FetchChipPublicKeyDto {
+  @IsString()
+  brandId: string
+
+  @IsOptional()
+  @IsString()
+  environment?: string
+}

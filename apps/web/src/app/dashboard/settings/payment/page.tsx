@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Key,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,9 +29,10 @@ interface GatewayState {
 interface Field {
   key: string
   labelKey: keyof ReturnType<typeof useLocale>['t']['paymentSettings']
-  type: 'text' | 'password' | 'select'
+  type: 'text' | 'password' | 'select' | 'textarea'
   placeholder?: string
   options?: { value: string; label: string }[]
+  fetchPublicKey?: boolean // show "Get Public Key" button
 }
 
 const ENV_OPTIONS = (p: ReturnType<typeof useLocale>['t']['paymentSettings']) => [
@@ -43,7 +45,7 @@ function gatewayFields(p: ReturnType<typeof useLocale>['t']['paymentSettings']):
     GENERAL: [],
     CHIP: [
       { key: 'brand_id', labelKey: 'chipBrandId', type: 'text', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
-      { key: 'public_key', labelKey: 'chipPublicKey', type: 'password' },
+      { key: 'public_key', labelKey: 'chipPublicKey', type: 'textarea', fetchPublicKey: true },
       { key: 'secret_key', labelKey: 'chipSecretKey', type: 'password' },
       { key: 'environment', labelKey: 'envLabel', type: 'select', options: ENV_OPTIONS(p) },
     ],
@@ -143,6 +145,7 @@ export default function PaymentSettingsPage() {
   const [activeTab, setActiveTab] = useState<GatewayKey>('GENERAL')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [fetchingKey, setFetchingKey] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const [states, setStates] = useState<Record<GatewayKey, GatewayState>>({
@@ -213,6 +216,28 @@ export default function PaymentSettingsPage() {
         config: { ...prev[activeTab].config, [key]: value },
       },
     }))
+  }
+
+  async function handleFetchChipPublicKey() {
+    const brandId = states.CHIP.config.brand_id ?? ''
+    const environment = states.CHIP.config.environment ?? 'production'
+    if (!brandId) {
+      showToast('error', 'Sila isi Brand ID dahulu')
+      return
+    }
+    setFetchingKey(true)
+    try {
+      const { publicKey } = await paymentSettings.fetchChipPublicKey(brandId, environment)
+      setStates((prev) => ({
+        ...prev,
+        CHIP: { ...prev.CHIP, config: { ...prev.CHIP.config, public_key: publicKey } },
+      }))
+      showToast('success', 'Public key berjaya diambil dari CHIP')
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : 'Gagal mengambil public key')
+    } finally {
+      setFetchingKey(false)
+    }
   }
 
   function setEnabled(value: boolean) {
@@ -392,6 +417,27 @@ export default function PaymentSettingsPage() {
                       onChange={(v) => setField(field.key, v)}
                       placeholder={field.placeholder}
                     />
+                  ) : field.type === 'textarea' ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={current.config[field.key] ?? ''}
+                        onChange={(e) => setField(field.key, e.target.value)}
+                        placeholder={field.placeholder ?? '-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----'}
+                        rows={6}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 resize-y"
+                      />
+                      {field.fetchPublicKey && (
+                        <button
+                          type="button"
+                          onClick={handleFetchChipPublicKey}
+                          disabled={fetchingKey}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 disabled:opacity-60 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          {fetchingKey ? <Loader2 size={14} className="animate-spin" /> : <Key size={14} />}
+                          {fetchingKey ? 'Mengambil...' : 'Get Public Key dari CHIP'}
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <input
                       type="text"
