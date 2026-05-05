@@ -1012,7 +1012,7 @@ const ms = {
       sandboxHint: 'Gunakan sandbox untuk ujian — jangan guna untuk pesanan sebenar',
       fieldClientId: 'Client ID',
       fieldClientSecret: 'Client Secret / Key',
-      fieldCountryCode: 'Kod Negara',
+      fieldCountryCode: 'Awalan Telefon',
       fieldApiKey: 'Kunci API',
       fieldApiSecret: 'Rahsia API',
       fieldAccountNo: 'No. Akaun',

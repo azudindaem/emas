@@ -1014,7 +1014,7 @@ const en: Translations = {
       sandboxHint: 'Use sandbox for testing — do not use with real orders',
       fieldClientId: 'Client ID',
       fieldClientSecret: 'Client Secret / Key',
-      fieldCountryCode: 'Country Code',
+      fieldCountryCode: 'Phone Prefix',
       fieldApiKey: 'API Key',
       fieldApiSecret: 'API Secret',
       fieldAccountNo: 'Account No.',
