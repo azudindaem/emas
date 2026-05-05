@@ -159,9 +159,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 inset-x-0 bg-white/95 backdrop-blur-sm border-b border-slate-100 z-50">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-base">E</span>
-            </div>
+            <img src="/logo.svg" alt="Emas" className="w-9 h-9" />
             <span className="font-bold text-xl text-slate-900 tracking-tight">emas</span>
           </a>
 

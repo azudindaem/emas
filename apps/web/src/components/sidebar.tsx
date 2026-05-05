@@ -107,7 +107,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     <aside className={`flex flex-col min-h-screen border-r border-slate-200 bg-white text-black transition-all duration-200 ${collapsed ? 'w-20' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center border-b border-slate-200 ${collapsed ? 'justify-center px-2 py-5' : 'gap-2 px-6 py-5'}`}>
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-black font-bold text-sm">E</div>
+        <img src="/logo.svg" alt="Emas" className="w-8 h-8" />
         {!collapsed && <span className="font-bold text-lg tracking-tight">emas.my</span>}
       </div>
 

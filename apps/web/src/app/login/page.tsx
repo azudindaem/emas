@@ -50,9 +50,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-black font-bold">
-              E
-            </div>
+            <img src="/logo.svg" alt="Emas" className="w-10 h-10" />
             <div>
               <p className="font-bold text-gray-900 text-lg leading-tight">emas.my</p>
               <p className="text-xs text-gray-400">E-commerce Management System</p>
