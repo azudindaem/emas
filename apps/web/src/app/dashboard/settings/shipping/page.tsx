@@ -62,6 +62,7 @@ interface ShippingDefaults {
 }
 
 const COURIER_PROVIDERS = [
+  'PARCEL_DAILY',
   'NINJAVAN',
   'POS_MALAYSIA',
   'JNT',
@@ -70,7 +71,6 @@ const COURIER_PROVIDERS = [
   'GDEX',
   'SKYNET',
   'AIRPAK',
-  'PARCEL_DAILY',
 ]
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -177,7 +177,6 @@ const COURIER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
     { key: 'isReschedule', labelKey: 'fieldReschedule', type: 'text', required: false, placeholder: 'WhatsApp' },
     { key: '__pickup__', labelKey: 'fieldPickupSection', type: 'section', required: false },
     { key: 'pickupAddress.fullName', labelKey: 'fieldFullName', type: 'text', required: true },
-    { key: 'pickupAddress.countryCode', labelKey: 'fieldCountryCode', type: 'text', required: false, placeholder: '+60' },
     { key: 'pickupAddress.phone', labelKey: 'fieldPhone', type: 'text', required: true, placeholder: '0123456789' },
     { key: 'pickupAddress.email', labelKey: 'fieldEmail', type: 'text', required: false },
     { key: 'pickupAddress.line1', labelKey: 'fieldLine1', type: 'text', required: true },
