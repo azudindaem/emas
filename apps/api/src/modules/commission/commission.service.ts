@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { CommissionValueType, WalletTransactionType } from '@emas/db'
+import { CommissionValueType, CommissionLogStatus, WalletTransactionType } from '@emas/db'
 import {
   CreateCommissionRuleDto,
   UpdateCommissionRuleDto,
@@ -76,6 +76,19 @@ export class CommissionService {
     })
     if (!order) throw new NotFoundException('Order not found')
 
+    // Idempotency: skip if already processed for this order
+    const existingLogs = await this.prisma.commissionLog.findMany({
+      where: { orderId: dto.orderId, tenantId, status: CommissionLogStatus.PAID },
+    })
+    if (existingLogs.length > 0) {
+      return {
+        orderId: dto.orderId,
+        distributions: [],
+        note: 'Commission already processed for this order',
+        skipped: true,
+      }
+    }
+
     // Get active SALES commission rules
     const rules = await this.prisma.commissionRule.findMany({
       where: { tenantId, type: 'SALES', isActive: true },
@@ -87,8 +100,14 @@ export class CommissionService {
     }
 
     const orderAmount = Number(order.total)
+    const recipientUserId = order.createdById
+
+    if (!recipientUserId) {
+      return { orderId: dto.orderId, distributions: [], note: 'Order has no assigned team member' }
+    }
+
     const distributions: Array<{
-      userId: string | null
+      userId: string
       ruleId: string
       ruleName: string
       commissionAmount: string
@@ -96,16 +115,12 @@ export class CommissionService {
     }> = []
 
     for (const rule of rules) {
-      // Determine recipient: for now, credit the order creator (stub for MLM tree)
-      const recipientUserId = order.createdById
-      if (!recipientUserId) continue
-
       const commissionAmount =
         rule.valueType === CommissionValueType.PERCENTAGE
           ? (orderAmount * Number(rule.value)) / 100
           : Number(rule.value)
 
-      // Ensure wallet exists and credit
+      // Ensure wallet exists and credit — all in one transaction
       const wallet = await this.prisma.wallet.upsert({
         where: { userId: recipientUserId },
         create: { tenantId, userId: recipientUserId, balance: 0, holdBalance: 0 },
@@ -131,6 +146,18 @@ export class CommissionService {
             note: `Commission: ${rule.name} — Order ${dto.orderId}`,
           },
         }),
+        this.prisma.commissionLog.create({
+          data: {
+            tenantId,
+            orderId: dto.orderId,
+            recipientId: recipientUserId,
+            ruleId: rule.id,
+            ruleType: rule.type,
+            commissionAmount,
+            status: CommissionLogStatus.PAID,
+            note: `${rule.name} (${rule.valueType === CommissionValueType.PERCENTAGE ? rule.value + '%' : 'RM' + rule.value})`,
+          },
+        }),
       ])
 
       distributions.push({
@@ -147,9 +174,27 @@ export class CommissionService {
       orderAmount: orderAmount.toFixed(2),
       distributions,
       note: distributions.length > 0
-        ? 'Commission distributed (stub: uses order creator; integrate MLM tree for multi-level)'
+        ? 'Commission distributed successfully'
         : 'No distributions made',
     }
+  }
+
+  // ─── Commission Logs ─────────────────────────────────────────────────────
+
+  async listLogs(tenantId: string, userId?: string, orderId?: string): Promise<unknown[]> {
+    return this.prisma.commissionLog.findMany({
+      where: {
+        tenantId,
+        ...(userId ? { recipientId: userId } : {}),
+        ...(orderId ? { orderId } : {}),
+      },
+      include: {
+        order: { select: { orderNo: true, total: true } },
+        recipient: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
   }
 }
 

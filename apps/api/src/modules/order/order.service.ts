@@ -3,6 +3,7 @@ import { OrderStatus, Prisma, StockMovementType } from '@emas/db'
 import { PrismaService } from '../prisma/prisma.service'
 import { WebhookDispatcherService } from '../webhook/webhook-dispatcher.service'
 import { ShippingService } from '../shipping/shipping.service'
+import { CommissionService } from '../commission/commission.service'
 import {
   CreateOrderDto,
   ListOrderQueryDto,
@@ -17,6 +18,7 @@ export class OrderService {
     private readonly prisma: PrismaService,
     private readonly webhookDispatcher: WebhookDispatcherService,
     private readonly shippingService: ShippingService,
+    private readonly commissionService: CommissionService,
   ) {}
 
   async list(tenantId: string, ownerId: string, query: ListOrderQueryDto): Promise<Record<string, unknown>> {
@@ -317,6 +319,13 @@ export class OrderService {
 
     if (dto.status === OrderStatusDto.READY_TO_SHIP) {
       void this.shippingService.autoGenerateAwbForOrder(tenantId, id).catch(() => undefined)
+    }
+
+    // Auto-trigger commission when order is DELIVERED (completed)
+    if (dto.status === OrderStatusDto.DELIVERED) {
+      void this.commissionService
+        .calculateAndDistribute(tenantId, { orderId: id })
+        .catch((err) => console.error('[commission] auto-trigger failed:', err))
     }
 
     this.webhookDispatcher.dispatch(tenantId, 'order.status_changed', {

@@ -6,9 +6,10 @@ import { OwnerResolverService } from '../../common/services/owner-resolver.servi
 import { WebhookModule } from '../webhook/webhook.module'
 import { ShippingModule } from '../shipping/shipping.module'
 import { InventoryModule } from '../inventory/inventory.module'
+import { CommissionModule } from '../commission/commission.module'
 
 @Module({
-  imports: [WebhookModule, ShippingModule, InventoryModule],
+  imports: [WebhookModule, ShippingModule, InventoryModule, CommissionModule],
   controllers: [OrderController],
   providers: [OrderService, RbacGuard, OwnerResolverService],
 })

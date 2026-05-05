@@ -5,5 +5,6 @@ import { CommissionService } from './commission.service'
 @Module({
   controllers: [CommissionController],
   providers: [CommissionService],
+  exports: [CommissionService],
 })
 export class CommissionModule {}

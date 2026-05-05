@@ -85,5 +85,19 @@ export class CommissionController {
   calculate(@CurrentTenant() tenant: TenantContext, @Body() dto: CalculateCommissionDto) {
     return this.commissionService.calculateAndDistribute(tenant.id, dto)
   }
+
+  // ─── Commission Logs ──────────────────────────────────────────────────────
+
+  @Get('logs')
+  @UseGuards(RbacGuard)
+  @RequirePermission('commission.read')
+  @ApiOperation({ summary: 'List commission logs for this tenant' })
+  listLogs(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('userId') userId?: string,
+    @Query('orderId') orderId?: string,
+  ): Promise<unknown[]> {
+    return this.commissionService.listLogs(tenant.id, userId, orderId)
+  }
 }
 
