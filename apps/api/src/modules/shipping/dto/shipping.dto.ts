@@ -26,6 +26,11 @@ export class CreateCourierAccountDto {
   @ApiProperty({ example: { apiKey: 'xxx', secret: 'yyy' } })
   @IsObject()
   credentials: Record<string, unknown>
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
 }
 
 export class UpdateCourierAccountDto {
