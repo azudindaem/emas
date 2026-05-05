@@ -41,7 +41,7 @@ export class CommissionService {
         valueType: dto.valueType ?? CommissionValueType.PERCENTAGE,
         minLevel: dto.minLevel,
         maxLevel: dto.maxLevel,
-        isActive: true,
+        isActive: dto.isActive ?? true,
       },
     })
   }

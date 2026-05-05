@@ -42,6 +42,11 @@ export class CreateCommissionRuleDto {
   @IsInt()
   @Min(1)
   maxLevel?: number
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean
 }
 
 export class UpdateCommissionRuleDto {
