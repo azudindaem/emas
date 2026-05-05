@@ -96,7 +96,7 @@ export default function CommissionPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.value) { setError('Name and value are required'); return }
+    if (!form.name || !form.value) { setError(ct.failedSave); return }
     setSaving(true)
     setError('')
     try {
@@ -117,7 +117,7 @@ export default function CommissionPage() {
       setShowForm(false)
       loadRules()
     } catch {
-      setError('Failed to save. Please try again.')
+      setError(ct.failedSave)
     } finally {
       setSaving(false)
     }
@@ -194,7 +194,7 @@ export default function CommissionPage() {
                     <td className="px-4 py-3 text-gray-500">{r.minLevel ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{r.maxLevel ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <Badge label={r.isActive ? 'Active' : 'Inactive'} color={r.isActive ? 'green' : 'gray'} />
+                      <Badge label={r.isActive ? ct.active : ct.inactive ?? 'Inactive'} color={r.isActive ? 'green' : 'gray'} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export default function CommissionPage() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Sales 5%"
+                  placeholder={ct.namePlaceholder}
                 />
               </div>
 
@@ -336,7 +336,7 @@ export default function CommissionPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{ct.minLevel} <span className="text-gray-400">(optional)</span></label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{ct.minLevel} <span className="text-gray-400">({ct.optional})</span></label>
                   <input
                     type="number" min="1"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -346,7 +346,7 @@ export default function CommissionPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{ct.maxLevel} <span className="text-gray-400">(optional)</span></label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{ct.maxLevel} <span className="text-gray-400">({ct.optional})</span></label>
                   <input
                     type="number" min="1"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -356,6 +356,7 @@ export default function CommissionPage() {
                   />
                 </div>
               </div>
+              <p className="text-xs text-gray-400 leading-relaxed -mt-1">{ct.levelHint}</p>
 
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -364,7 +365,7 @@ export default function CommissionPage() {
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
                   className="accent-primary w-4 h-4"
                 />
-                <span className="text-sm text-gray-700">Active</span>
+                <span className="text-sm text-gray-700">{ct.active}</span>
               </label>
 
               <div className="flex gap-2 pt-2">
