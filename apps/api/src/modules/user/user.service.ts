@@ -302,8 +302,7 @@ export class UserService {
     }
   }
 
-  async acceptInvite(dto: AcceptInviteDto) {
-    const invite = await this.prisma.teamInvite.findUnique({
+  async acceptInvite(dto: AcceptInviteDto) {    const invite = await this.prisma.teamInvite.findUnique({
       where: { token: dto.token },
       include: { role: true },
     })
@@ -333,6 +332,35 @@ export class UserService {
     })
 
     return { success: true, email: invite.email }
+  }
+
+  // List all subscribers (workspace owners) across every tenant — Super Admin use
+  async listAllSubscribers(requestingUserId: string) {
+    // Get all memberships where level >= 100 (Owner of their workspace)
+    const rows = await this.prisma.membership.findMany({
+      where: { level: { gte: 100 } },
+      include: {
+        user: { select: { id: true, name: true, email: true, status: true, createdAt: true } },
+        role: { select: { name: true, level: true } },
+        tenant: { select: { id: true, name: true, slug: true, createdAt: true } },
+      },
+      orderBy: { joinedAt: 'desc' },
+    })
+
+    return rows.map((r) => ({
+      membershipId: r.id,
+      workspaceId: r.tenant.id,
+      workspaceName: r.tenant.name,
+      workspaceSlug: r.tenant.slug,
+      workspaceCreatedAt: r.tenant.createdAt,
+      userId: r.user.id,
+      name: r.user.name,
+      email: r.user.email,
+      status: r.user.status,
+      role: r.role.name,
+      level: r.role.level,
+      joinedAt: r.joinedAt,
+    }))
   }
 }
 

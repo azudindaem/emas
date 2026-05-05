@@ -6,6 +6,7 @@ import { CurrentTenant } from '../../common/decorators/current-tenant.decorator'
 import type { TenantContext } from '@emas/tenancy'
 import { AcceptInviteDto, AssignRoleDto, CreateRoleDto, InviteMemberDto, UpdateProfileDto } from './dto/user.dto'
 import { RbacGuard } from '../../common/guards/rbac.guard'
+import { OwnerGuard } from '../../common/guards/owner.guard'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator'
 import type { Request } from 'express'
 
@@ -108,5 +109,12 @@ export class UserController {
   @RequirePermission('team.invite.send')
   cancelInvite(@CurrentTenant() tenant: TenantContext, @Param('inviteId') inviteId: string) {
     return this.userService.cancelInvite(tenant.id, inviteId)
+  }
+
+  // ── Super Admin only: list all subscribers across all workspaces ─────────
+  @Get('system/subscribers')
+  @UseGuards(OwnerGuard)
+  listAllSubscribers(@Req() req: Request & { user?: { userId: string; tenantId: string } }) {
+    return this.userService.listAllSubscribers(req.user!.userId)
   }
 }

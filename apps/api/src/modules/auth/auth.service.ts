@@ -14,17 +14,29 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async login(dto: LoginDto, tenantId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { email: dto.email, memberships: { some: { tenantId } } },
+  async login(dto: LoginDto) {
+    // Find all user records for this email across all workspaces
+    // A subscriber will have level=100 in their own workspace; prefer that over member accounts
+    const allUsers = await this.prisma.user.findMany({
+      where: { email: dto.email },
+      include: { memberships: { orderBy: { level: 'desc' }, take: 1 } },
     })
 
-    if (!user || !user.passwordHash) throw new UnauthorizedException('Invalid credentials')
+    if (!allUsers.length) throw new UnauthorizedException('Invalid credentials')
 
+    // Sort: Owner workspace first (level 100), then members (level 1)
+    allUsers.sort((a, b) => (b.memberships[0]?.level ?? 0) - (a.memberships[0]?.level ?? 0))
+    const user = allUsers[0]
+
+    if (!user.passwordHash) throw new UnauthorizedException('Invalid credentials')
     const hash = crypto.createHash('sha256').update(dto.password).digest('hex')
     if (hash !== user.passwordHash) throw new UnauthorizedException('Invalid credentials')
 
-    const tokens = this.generateTokens(user.id, tenantId)
+    const membership = user.memberships[0]
+    if (!membership) throw new UnauthorizedException('No workspace found')
+
+    // JWT carries the workspace tenantId (not the platform domain tenant)
+    const tokens = this.generateTokens(user.id, membership.tenantId)
     return {
       ...tokens,
       user: { id: user.id, name: user.name, email: user.email },
@@ -32,8 +44,10 @@ export class AuthService {
   }
 
   async sendTac(dto: SendTacDto, tenantId: string) {
-    // Check email not already registered
-    const exists = await this.prisma.user.findFirst({ where: { tenantId, email: dto.email } })
+    // Check email not already a subscriber (Owner in any workspace)
+    const exists = await this.prisma.user.findFirst({
+      where: { email: dto.email, memberships: { some: { level: { gte: 100 } } } },
+    })
     if (exists) throw new ConflictException('Email sudah didaftarkan')
 
     // Get system email config
@@ -99,56 +113,65 @@ export class AuthService {
     return { valid: true }
   }
 
-  async register(dto: RegisterDto, tenantId: string) {
+  async register(dto: RegisterDto, platformTenantId: string) {
     // Validate passwords match
     if (dto.password !== dto.passwordConfirm) {
       throw new BadRequestException('Kata laluan tidak sepadan')
     }
 
-    // Verify TAC
+    // Verify TAC (TACs stored under platform tenant, pre-workspace-creation)
     const tac = await this.prisma.signupTac.findFirst({
-      where: { tenantId, email: dto.email, code: dto.tac, used: false },
+      where: { tenantId: platformTenantId, email: dto.email, code: dto.tac, used: false },
       orderBy: { createdAt: 'desc' },
     })
     if (!tac) throw new BadRequestException('Kod TAC tidak sah')
     if (tac.expiresAt < new Date()) throw new BadRequestException('Kod TAC telah tamat tempoh')
 
-    const exists = await this.prisma.user.findFirst({ where: { tenantId, email: dto.email } })
+    // Check not already a subscriber
+    const exists = await this.prisma.user.findFirst({
+      where: { email: dto.email, memberships: { some: { level: { gte: 100 } } } },
+    })
     if (exists) throw new ConflictException('Email already registered')
 
     const passwordHash = crypto.createHash('sha256').update(dto.password).digest('hex')
 
-    const membershipCount = await this.prisma.membership.count({ where: { tenantId } })
-
-    const ownerRole =
-      (await this.prisma.role.findFirst({ where: { tenantId, name: 'Owner' } })) ??
-      (await this.prisma.role.create({
-        data: { tenantId, name: 'Owner', level: 100, permissions: ['*'], isDefault: false },
-      }))
-
-    const defaultRole =
-      (await this.prisma.role.findFirst({ where: { tenantId, isDefault: true } })) ??
-      (await this.prisma.role.create({
-        data: { tenantId, name: 'Member', level: 1, permissions: ['order.read', 'product.read'], isDefault: true },
-      }))
-
-    const assignedRole = membershipCount === 0 ? ownerRole : defaultRole
-
-    const user = await this.prisma.user.create({
-      data: { tenantId, name: dto.name, email: dto.email, passwordHash },
+    // ── Create a new Workspace (Tenant) for this subscriber ──────────────
+    const slugBase = dto.email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase()
+    const workspace = await this.prisma.tenant.create({
+      data: {
+        slug: `${slugBase}-${Date.now()}`,
+        name: dto.name,
+      },
     })
 
+    // Create Owner role for the new workspace
+    const ownerRole = await this.prisma.role.create({
+      data: { tenantId: workspace.id, name: 'Owner', level: 100, permissions: ['*'], isDefault: false },
+    })
+
+    // Create default Member role (for future team invites)
+    await this.prisma.role.create({
+      data: { tenantId: workspace.id, name: 'Member', level: 1, permissions: ['order.read', 'product.read'], isDefault: true },
+    })
+
+    // Create user in their workspace
+    const user = await this.prisma.user.create({
+      data: { tenantId: workspace.id, name: dto.name, email: dto.email, passwordHash },
+    })
+
+    // Create Owner membership
     await this.prisma.membership.create({
-      data: { tenantId, userId: user.id, roleId: assignedRole.id, level: assignedRole.level },
+      data: { tenantId: workspace.id, userId: user.id, roleId: ownerRole.id, level: ownerRole.level },
     })
 
     // Mark TAC as used
     await this.prisma.signupTac.update({ where: { id: tac.id }, data: { used: true } })
 
-    // Send welcome email (non-blocking)
-    this.sendWelcomeEmail(tenantId, user.name, user.email).catch(() => null)
+    // Send welcome email — use platform email config (non-blocking)
+    this.sendWelcomeEmail(platformTenantId, user.name, user.email).catch(() => null)
 
-    const tokens = this.generateTokens(user.id, tenantId)
+    // JWT carries workspace tenantId
+    const tokens = this.generateTokens(user.id, workspace.id)
     return { ...tokens, user: { id: user.id, name: user.name, email: user.email } }
   }
 
@@ -188,12 +211,9 @@ export class AuthService {
     return { accessToken, refreshToken }
   }
 
-  private getSystemOwnerEmails(): string[] {
+  private getSuperAdminEmails(): string[] {
     const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
-    return raw
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean)
+    return raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
   }
 
   async getMe(userId: string, tenantId: string) {
@@ -206,13 +226,18 @@ export class AuthService {
     const permissions = Array.isArray(membership.role.permissions)
       ? membership.role.permissions.map((p) => String(p))
       : []
-    const isOwner = permissions.includes('*') || membership.role.level >= 100
-    const systemOwnerEmails = this.getSystemOwnerEmails()
-    const isSystemOwnerFromList = systemOwnerEmails.includes(
-      membership.user.email.toLowerCase(),
-    )
-    const isSystemOwner =
-      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
+
+    // Tier 2 – Super User: tenant owner (level >= 100 or wildcard)
+    const isOwner = membership.role.level >= 100 || permissions.includes('*')
+
+    // Tier 1 – Super Admin: strictly from SYSTEM_OWNER_EMAILS whitelist
+    const superAdminEmails = this.getSuperAdminEmails()
+    const isSuperAdmin = superAdminEmails.length > 0
+      ? superAdminEmails.includes(membership.user.email.toLowerCase())
+      : false  // empty whitelist = no one is super admin explicitly
+
+    // isSystemOwner = strictly platform-level admin only (NOT subscribers/owners)
+    const isSystemOwner = isSuperAdmin
 
     return {
       id: membership.user.id,
@@ -225,8 +250,10 @@ export class AuthService {
       role: {
         name: membership.role.name,
         level: membership.role.level,
+        permissions,
         isOwner,
-        isSystemOwner,
+        isSuperAdmin,
+        isSystemOwner,  // kept for backward compat
       },
     }
   }

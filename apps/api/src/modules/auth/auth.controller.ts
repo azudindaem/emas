@@ -14,8 +14,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: LoginDto, @CurrentTenant() tenant: TenantContext) {
-    return this.auth.login(dto, tenant.id)
+  login(@Body() dto: LoginDto) {
+    return this.auth.login(dto)
   }
 
   @Post('send-tac')
@@ -46,8 +46,8 @@ export class AuthController {
   @Get('me')
   getMe(
     @Req() req: Request & { user?: { userId: string; tenantId: string } },
-    @CurrentTenant() tenant: TenantContext,
   ) {
-    return this.auth.getMe(req.user!.userId, tenant.id)
+    // tenantId from JWT = user's own workspace (set at registration/login)
+    return this.auth.getMe(req.user!.userId, req.user!.tenantId)
   }
 }

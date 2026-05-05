@@ -10,6 +10,12 @@ import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../modules/prisma/prisma.service'
 import { REQUIRED_PERMISSION_KEY } from '../decorators/require-permission.decorator'
 
+/**
+ * 3-tier permission hierarchy:
+ *  Tier 1 – Super Admin   : SYSTEM_OWNER_EMAILS whitelist, platform-wide bypass
+ *  Tier 2 – Super User    : Tenant owner (level >= 100 OR permissions = ['*']), tenant-wide bypass
+ *  Tier 3 – Member        : level < 100, checked against specific permissions
+ */
 @Injectable()
 export class RbacGuard implements CanActivate {
   constructor(
@@ -18,12 +24,9 @@ export class RbacGuard implements CanActivate {
     private readonly config: ConfigService,
   ) {}
 
-  private getSystemOwnerEmails(): string[] {
+  private getSuperAdminEmails(): string[] {
     const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
-    return raw
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean)
+    return raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,36 +43,30 @@ export class RbacGuard implements CanActivate {
 
     const userId = request.user?.userId
     const tenantId = request.user?.tenantId
-    if (!userId || !tenantId) {
-      throw new UnauthorizedException('Invalid user context')
-    }
+    if (!userId || !tenantId) throw new UnauthorizedException('Invalid user context')
 
     const membership = await this.prisma.membership.findFirst({
       where: { tenantId, userId },
       include: { role: true, user: true },
     })
 
-    if (!membership) {
-      throw new ForbiddenException('No membership found for tenant')
-    }
+    if (!membership) throw new ForbiddenException('No membership found for tenant')
 
-    const permissions = Array.isArray(membership.role.permissions)
-      ? membership.role.permissions.map((p) => String(p))
-      : []
-
-    const systemOwnerEmails = this.getSystemOwnerEmails()
-    const isSystemOwnerFromList = systemOwnerEmails.includes(
-      membership.user.email.toLowerCase(),
-    )
-    const isOwner = permissions.includes('*') || membership.role.level >= 100
-    const isSystemOwner =
-      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
-
-    if (isSystemOwner) {
+    // Tier 1 – Super Admin (platform-wide whitelist)
+    const superAdminEmails = this.getSuperAdminEmails()
+    if (superAdminEmails.length > 0 && superAdminEmails.includes(membership.user.email.toLowerCase())) {
       return true
     }
 
-    if (!permissions.includes(requiredPermission) && !permissions.includes('*')) {
+    // Tier 2 – Super User (tenant owner: level >= 100 or wildcard permission)
+    const permissions = Array.isArray(membership.role.permissions)
+      ? membership.role.permissions.map((p) => String(p))
+      : []
+    const isSuperUser = membership.role.level >= 100 || permissions.includes('*')
+    if (isSuperUser) return true
+
+    // Tier 3 – Member: check specific permission
+    if (!permissions.includes(requiredPermission)) {
       throw new ForbiddenException(`Missing permission: ${requiredPermission}`)
     }
 

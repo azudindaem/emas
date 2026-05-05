@@ -8,6 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../modules/prisma/prisma.service'
 
+/**
+ * OwnerGuard – allows only Tier 1 (Super Admin) or Tier 2 (Super User / tenant owner).
+ * Blocks Tier 3 Members.
+ */
 @Injectable()
 export class OwnerGuard implements CanActivate {
   constructor(
@@ -15,12 +19,9 @@ export class OwnerGuard implements CanActivate {
     private readonly config: ConfigService,
   ) {}
 
-  private getSystemOwnerEmails(): string[] {
+  private getSuperAdminEmails(): string[] {
     const raw = this.config.get<string>('SYSTEM_OWNER_EMAILS', '')
-    return raw
-      .split(',')
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean)
+    return raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -30,35 +31,28 @@ export class OwnerGuard implements CanActivate {
 
     const userId = request.user?.userId
     const tenantId = request.user?.tenantId
-    if (!userId || !tenantId) {
-      throw new UnauthorizedException('Invalid user context')
-    }
+    if (!userId || !tenantId) throw new UnauthorizedException('Invalid user context')
 
     const membership = await this.prisma.membership.findFirst({
       where: { tenantId, userId },
       include: { role: true, user: true },
     })
 
-    if (!membership) {
-      throw new ForbiddenException('No membership found for tenant')
+    if (!membership) throw new ForbiddenException('No membership found for tenant')
+
+    // Tier 1 – Super Admin
+    const superAdminEmails = this.getSuperAdminEmails()
+    if (superAdminEmails.length > 0 && superAdminEmails.includes(membership.user.email.toLowerCase())) {
+      return true
     }
 
+    // Tier 2 – Super User (tenant owner)
     const permissions = Array.isArray(membership.role.permissions)
       ? membership.role.permissions.map((p) => String(p))
       : []
+    const isSuperUser = membership.role.level >= 100 || permissions.includes('*')
+    if (isSuperUser) return true
 
-    const isOwner = permissions.includes('*') || membership.role.level >= 100
-    const systemOwnerEmails = this.getSystemOwnerEmails()
-    const isSystemOwnerFromList = systemOwnerEmails.includes(
-      membership.user.email.toLowerCase(),
-    )
-    const isSystemOwner =
-      systemOwnerEmails.length > 0 ? isSystemOwnerFromList : isOwner
-
-    if (!isSystemOwner) {
-      throw new ForbiddenException('System owner access required')
-    }
-
-    return true
+    throw new ForbiddenException('Owner access required')
   }
 }

@@ -15,7 +15,9 @@ interface User {
   role: {
     name: string
     level: number
+    permissions: string[]
     isOwner: boolean
+    isSuperAdmin: boolean
     isSystemOwner: boolean
   }
 }
@@ -24,10 +26,12 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   isOwner: boolean
+  isSuperAdmin: boolean
   isSystemOwner: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   refreshMe: () => Promise<void>
+  hasPermission: (perm: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -77,7 +81,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login'
   }
 
-  return <LocaleProvider><AuthContext.Provider value={{ user, loading, isOwner: user?.role?.isOwner ?? false, isSystemOwner: user?.role?.isSystemOwner ?? false, login, logout, refreshMe }}>{children}</AuthContext.Provider></LocaleProvider>
+  function hasPermission(perm: string): boolean {
+    if (!user) return false
+    if (user.role.isOwner || user.role.isSuperAdmin) return true
+    return user.role.permissions?.includes(perm) ?? false
+  }
+
+  const isOwner = user?.role?.isOwner ?? false
+  const isSuperAdmin = user?.role?.isSuperAdmin ?? false
+  const isSystemOwner = isSuperAdmin  // strictly platform admin, NOT subscriber owners
+
+  return (
+    <LocaleProvider>
+      <AuthContext.Provider value={{ user, loading, isOwner, isSuperAdmin, isSystemOwner, login, logout, refreshMe, hasPermission }}>
+        {children}
+      </AuthContext.Provider>
+    </LocaleProvider>
+  )
 }
 
 export function useAuth() {

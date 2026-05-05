@@ -631,6 +631,11 @@ const en: Translations = {
     conditionInvalid: 'Condition JSON is invalid',
     selectRoleFirst: 'Select a role',
     triggerCol: 'Trigger',
+    editRole: 'Edit Role',
+    failedUpdate: 'Failed to update role',
+    permissionsSelected: 'selected',
+    active: 'Active',
+    inactive: 'Inactive',
   },
   // Team
   team: {

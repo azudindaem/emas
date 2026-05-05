@@ -36,7 +36,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname()
-  const { user, logout, isSystemOwner } = useAuth()
+  const { user, logout, isOwner, isSuperAdmin, isSystemOwner, hasPermission } = useAuth()
   const { t } = useLocale()
 
   const isSettingsActive = pathname.startsWith('/dashboard/settings')
@@ -62,16 +62,19 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     { href: '/dashboard/commission', label: t.nav.commission, icon: TrendingUp },
     { href: '/dashboard/coupons', label: t.nav.coupons, icon: Tag },
     { href: '/dashboard/brands', label: t.nav.brands, icon: Palette },
-    { href: '/dashboard/roles', label: t.nav.roles, icon: ShieldCheck },
-    { href: '/dashboard/team', label: t.nav.team, icon: Users },
+    // Owner-only: team management
+    ...(isOwner ? [
+      { href: '/dashboard/roles', label: t.nav.roles, icon: ShieldCheck },
+      { href: '/dashboard/team', label: t.nav.team, icon: Users },
+    ] : []),
     { href: '/dashboard/notifications', label: t.nav.notifications, icon: Bell },
   ]
 
   const settingsSubItems = [
-    { href: '/dashboard/settings/profile', label: t.settings?.profile?.title ?? 'Profile', icon: User },
-    { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck },
-    { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard },
-  ]
+    { href: '/dashboard/settings/profile', label: t.settings?.profile?.title ?? 'Profile', icon: User, perm: null },
+    { href: '/dashboard/settings/shipping', label: t.nav.shipping, icon: Truck, perm: 'settings.shipping.read' },
+    { href: '/dashboard/settings/payment', label: t.paymentSettings?.title ?? 'Payment', icon: CreditCard, perm: 'settings.payment.read' },
+  ].filter(item => item.perm === null || hasPermission(item.perm))
 
   const systemSubItems = [
     { href: '/dashboard/system/settings', label: t.systemSettings?.title ?? 'System Settings', icon: Wrench },
@@ -171,8 +174,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           )}
         </div>
 
-        {/* System group — owner only */}
-        {isSystemOwner && (
+        {/* System group — platform Super Admin only */}
+        {isSuperAdmin && (
           <div>
             {collapsed ? (
               <Link

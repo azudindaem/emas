@@ -104,7 +104,7 @@ export class InviteMemberDto {
 
 export class AcceptInviteDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   token: string
 
   @IsString()

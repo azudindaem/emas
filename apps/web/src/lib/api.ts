@@ -76,7 +76,7 @@ export const auth = {
       lastName?: string | null
       phone?: string | null
       avatarUrl?: string | null
-      role: { name: string; level: number; isOwner: boolean; isSystemOwner: boolean }
+      role: { name: string; level: number; permissions: string[]; isOwner: boolean; isSuperAdmin: boolean; isSystemOwner: boolean }
     }>('/auth/me'),
 }
 
@@ -515,6 +515,21 @@ export const roles = {
     request<unknown>('/role/automation/trigger', { method: 'POST', body: JSON.stringify(data) }),
 }
 
+export interface PermissionItem {
+  key: string
+  label: string
+  group: string
+}
+
+export interface PermissionGroup {
+  group: string
+  permissions: PermissionItem[]
+}
+
+export const permissions = {
+  listGroups: (locale?: string) => request<PermissionGroup[]>(`/permissions${locale ? `?locale=${locale}` : ''}`),
+}
+
 // ─── Payment Settings ─────────────────────────────────────────────────────────
 
 export const paymentSettings = {
@@ -571,7 +586,7 @@ export const systemSettings = {
 }
 
 export const systemUsers = {
-  list: () => request<unknown[]>('/user/members'),
+  list: () => request<unknown[]>('/user/system/subscribers'),
   listRoles: () => request<unknown[]>('/user/roles'),
   assignRole: (membershipId: string, roleId: string) =>
     request<unknown>(`/user/members/${membershipId}/role`, { method: 'PATCH', body: JSON.stringify({ roleId }) }),

@@ -629,6 +629,11 @@ const ms = {
     conditionInvalid: 'Condition JSON tidak sah',
     selectRoleFirst: 'Pilih peranan',
     triggerCol: 'Pencetus',
+    editRole: 'Edit Peranan',
+    failedUpdate: 'Gagal kemaskini peranan',
+    permissionsSelected: 'dipilih',
+    active: 'Aktif',
+    inactive: 'Tidak Aktif',
   },
   // Team
   team: {

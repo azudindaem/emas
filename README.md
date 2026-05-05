@@ -60,10 +60,11 @@ packages/
 | Team Management + RBAC | ✅ | ✅ | Done |
 | Customer Management | ✅ | ✅ | Done |
 | Invoice Generation (seller + customer) | ✅ | ✅ | Done |
-| Role Management | ✅ | ✅ | Done |
+| Role Management (3-tier, bilingual, per-route guards) | ✅ | ✅ | Done |
+| Permission-filtered Sidebar Nav | ✅ | ✅ | Done |
 | User Profile (editable + avatar upload) | ✅ | ✅ | Done |
-| Tenant Payment Settings | ✅ | ✅ | Done |
-| Shipping Settings | ✅ | ✅ | Done |
+| Tenant Payment Settings (permission-gated) | ✅ | ✅ | Done |
+| Shipping Settings (permission-gated) | ✅ | ✅ | Done |
 | Brand Management | ✅ | ✅ | Done |
 | Coupon / Discount System | ✅ | ✅ | Done |
 
@@ -109,7 +110,8 @@ packages/
 | System Settings | ✅ | ✅ | Done |
 | System User List | ✅ | ✅ | Done |
 | System Subscription Plans (CRUD) | ✅ | ✅ | Done |
-| System Payment Gateway Config | ✅ | ✅ | Done |
+| System Payment Gateway Config (permission-gated) | ✅ | ✅ | Done |
+| System Email / SMTP Config (permission-gated) | ✅ | ✅ | Done |
 
 #### Payment Gateway Integration
 
@@ -147,7 +149,7 @@ packages/
   | SMS | AdaSMS, SMS Niaga | ❌ Pending |
   | WhatsApp Rasmi | WABA | 🔜 Coming Soon |
   | WhatsApp Tidak Rasmi | Wsapme | ❌ Pending |
-- **RBAC** — unlimited custom roles, 1-15 user levels, KPI-based auto role upgrade/downgrade
+- **RBAC** — 3-tier permission hierarchy (Owner → Team → Customer), unlimited custom roles, granular per-route permissions with `@RequirePermission` guard, bilingual permission labels (MS/EN), sidebar nav filtered by active role permissions
 - **Brand Management** — multi-brand per tenant, separate payment collection, custom AWB
 - **Analytics** — real-time ranking, KPI metrics, ROI/ROAS, export CSV/Excel
 - **System Admin Panel** — owner-only: manage plans, users, system payment gateways, settings
