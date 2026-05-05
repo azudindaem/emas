@@ -322,8 +322,14 @@ export class UserService {
       data: { tenantId, name: dto.name, email: invite.email, passwordHash },
     })
 
+    // Find the root owner membership so resolveOwnerId() can walk up to the owner's data
+    const ownerMembership = await this.prisma.membership.findFirst({
+      where: { tenantId, uplineId: null },
+      orderBy: { level: 'desc' },
+    })
+
     await this.prisma.membership.create({
-      data: { tenantId, userId: user.id, roleId: invite.roleId, level: invite.role.level },
+      data: { tenantId, userId: user.id, roleId: invite.roleId, level: invite.role.level, uplineId: ownerMembership?.id ?? null },
     })
 
     await this.prisma.teamInvite.update({

@@ -16,19 +16,30 @@ export class OwnerResolverService {
     for (let depth = 0; depth < 10; depth++) {
       const membership = await this.prisma.membership.findFirst({
         where: { tenantId, userId: currentUserId },
-        select: { uplineId: true },
+        select: { uplineId: true, level: true },
       })
-      if (!membership || !membership.uplineId) {
-        return currentUserId
+      if (!membership) return currentUserId
+
+      // If uplineId is set, walk up the chain
+      if (membership.uplineId) {
+        const uplineMembership = await this.prisma.membership.findFirst({
+          where: { id: membership.uplineId },
+          select: { userId: true },
+        })
+        if (!uplineMembership) return currentUserId
+        currentUserId = uplineMembership.userId
+        continue
       }
-      const uplineMembership = await this.prisma.membership.findFirst({
-        where: { id: membership.uplineId },
-        select: { userId: true },
+
+      // No uplineId: if this user is an owner (level >= 100) they ARE the root
+      if (membership.level >= 100) return currentUserId
+
+      // Team member with no uplineId (legacy row) — find the tenant root owner
+      const ownerMembership = await this.prisma.membership.findFirst({
+        where: { tenantId, uplineId: null, level: { gte: 100 } },
+        orderBy: { level: 'desc' },
       })
-      if (!uplineMembership) {
-        return currentUserId
-      }
-      currentUserId = uplineMembership.userId
+      return ownerMembership ? ownerMembership.userId : currentUserId
     }
     return currentUserId
   }

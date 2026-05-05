@@ -270,6 +270,7 @@ export default function ProductsPage() {
     if (filterCategory) params.categoryId = filterCategory
     productsApi.list(params)
       .then(res => { setItems(res.items as Product[]); setMeta(res.meta) })
+      .catch(e => setGlobalError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))
   }, [page, search, filterStatus, filterCategory, sortBy])
 
