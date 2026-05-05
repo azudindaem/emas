@@ -333,10 +333,34 @@ function CourierModal({
                 placeholder="e.g. NinjaVan Main Account"
               />
             </div>
+            {provider === 'PARCEL_DAILY' && (() => {
+              const spField = currentFields.find(f => f.key === 'serviceProvider')
+              if (!spField) return null
+              const spLabel = (labels as Record<string, string>)[spField.labelKey] ?? spField.labelKey
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {spLabel}
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    value={credentialFields['serviceProvider'] ?? ''}
+                    onChange={(e) => setCredentialFields(prev => ({ ...prev, serviceProvider: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    disabled={loadingServices}
+                  >
+                    <option value="">-- Select service provider --</option>
+                    {dynamicServiceProviders.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            })()}
             {currentFields.length > 0 && (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-gray-700">{labels.credentialsSection}</p>
-                {currentFields.map((field) => {
+                {currentFields.filter(f => f.key !== 'serviceProvider').map((field) => {
                   const fieldLabel = (labels as Record<string, string>)[field.labelKey] ?? field.labelKey
                   if (field.type === 'section') {
                     return (
