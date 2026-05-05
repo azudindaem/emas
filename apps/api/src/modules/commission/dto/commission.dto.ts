@@ -55,6 +55,11 @@ export class UpdateCommissionRuleDto {
   @IsString()
   name?: string
 
+  @ApiPropertyOptional({ enum: CommissionType })
+  @IsOptional()
+  @IsEnum(CommissionType)
+  type?: CommissionType
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 4 })
