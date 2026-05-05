@@ -674,21 +674,35 @@ export default function ProductsPage() {
                         <label className="text-xs font-semibold text-gray-700">{t.products.variation.title}</label>
                         <button type="button" onClick={addVarRow} className="text-xs text-primary hover:text-primary-dark flex items-center gap-1"><Plus size={12} />{t.products.variation.addRow}</button>
                       </div>
-                      <div className="grid grid-cols-9 gap-1.5 text-xs text-gray-500 px-1">
-                        <div className="col-span-2">{t.products.variation.sku}</div><div className="col-span-3">{t.products.variation.name}</div>
-                        <div className="col-span-2">{t.products.variation.price}</div><div className="col-span-2">{t.products.variation.weight}</div>
-                      </div>
-                      {varForm2.rows.map((r, i) => (
-                        <div key={i} className="grid grid-cols-9 gap-1.5 items-center">
-                          <input value={r.sku} onChange={e => setVarRowField(i, 'sku', e.target.value)} placeholder="SKU-S" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
-                          <input value={r.name} onChange={e => setVarRowField(i, 'name', e.target.value)} placeholder={t.products.variation.name} className="col-span-3 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
-                          <input type="number" step="0.01" value={r.price} onChange={e => setVarRowField(i, 'price', e.target.value)} placeholder="0.00" className="col-span-2 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
-                          <div className="col-span-2 flex items-center gap-1">
-                            <input type="number" step="0.001" value={r.weight} onChange={e => setVarRowField(i, 'weight', e.target.value)} placeholder="0.000" className="flex-1 border border-gray-300 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
-                            {varForm2.rows.length > 1 && <button type="button" onClick={() => removeVarRow(i)} className="p-1.5 text-gray-500 hover:text-red-400"><Trash2 size={12} /></button>}
+                      <div className="space-y-2">
+                        {varForm2.rows.map((r, i) => (
+                          <div key={i} className="border border-gray-200 rounded-lg p-2.5 space-y-2 bg-gray-50/50">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] text-gray-500 mb-1">{t.products.variation.sku}</label>
+                                <input value={r.sku} onChange={e => setVarRowField(i, 'sku', e.target.value)} placeholder="SKU-S" className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-gray-500 mb-1">{t.products.variation.name}</label>
+                                <input value={r.name} onChange={e => setVarRowField(i, 'name', e.target.value)} placeholder={t.products.variation.name} className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                              </div>
+                            </div>
+                            <div className="flex items-end gap-2">
+                              <div className="flex-1">
+                                <label className="block text-[10px] text-gray-500 mb-1">{t.products.variation.price}</label>
+                                <input type="number" step="0.01" value={r.price} onChange={e => setVarRowField(i, 'price', e.target.value)} placeholder="0.00" className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-[10px] text-gray-500 mb-1">{t.products.variation.weight}</label>
+                                <input type="number" step="0.001" value={r.weight} onChange={e => setVarRowField(i, 'weight', e.target.value)} placeholder="0.000" className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                              </div>
+                              {varForm2.rows.length > 1 && (
+                                <button type="button" onClick={() => removeVarRow(i)} className="p-1.5 text-gray-400 hover:text-red-400 shrink-0 mb-0.5"><Trash2 size={13} /></button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -798,8 +812,8 @@ export default function ProductsPage() {
 
                     {varError && <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg">{varError}</div>}
 
-                    <div className="border border-gray-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-xs">
+                    <div className="border border-gray-200 rounded-xl overflow-x-auto">
+                      <table className="w-full text-xs min-w-[500px]">
                         <thead className="bg-gray-50 border-b border-gray-200">
                           <tr>
                               {[t.products.variation.sku, t.products.variation.name, t.products.variation.price, t.products.variation.weight, t.products.fields.imageMain, ''].map(h => (
