@@ -25,6 +25,28 @@ export class ProductService {
         where: { variation: { product: { tenantId, ownerId } }, quantity: { lte: 5 } },
       }),
     ])
+
+    if (totalProducts === 0) {
+      const [tenantTotalProducts, tenantTotalVariations, tenantTotalStock, tenantLowStock] = await Promise.all([
+        this.prisma.product.count({ where: { tenantId } }),
+        this.prisma.productVariation.count({ where: { product: { tenantId } } }),
+        this.prisma.productStock.aggregate({
+          where: { variation: { product: { tenantId } } },
+          _sum: { quantity: true },
+        }),
+        this.prisma.productStock.count({
+          where: { variation: { product: { tenantId } }, quantity: { lte: 5 } },
+        }),
+      ])
+
+      return {
+        totalProducts: tenantTotalProducts,
+        totalVariations: tenantTotalVariations,
+        totalStock: tenantTotalStock._sum.quantity ?? 0,
+        lowStock: tenantLowStock,
+      }
+    }
+
     return {
       totalProducts,
       totalVariations,
@@ -43,7 +65,7 @@ export class ProductService {
       : 20
     const skip = (page - 1) * limit
 
-    const where = {
+    const ownerWhere = {
       tenantId,
       ownerId,
       ...(query.status ? { status: query.status } : {}),
@@ -57,14 +79,38 @@ export class ProductService {
 
     const [items, total] = await Promise.all([
       this.prisma.product.findMany({
-        where,
+        where: ownerWhere,
         orderBy,
         skip,
         take: limit,
         include: { variations: { include: { stocks: { select: { quantity: true, reserved: true } } } } },
       }),
-      this.prisma.product.count({ where }),
+      this.prisma.product.count({ where: ownerWhere }),
     ])
+
+    if (total === 0) {
+      const tenantWhere = {
+        tenantId,
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+        ...(query.search
+          ? { OR: [{ sku: { contains: query.search } }, { name: { contains: query.search } }] }
+          : {}),
+      }
+
+      const [tenantItems, tenantTotal] = await Promise.all([
+        this.prisma.product.findMany({
+          where: tenantWhere,
+          orderBy,
+          skip,
+          take: limit,
+          include: { variations: { include: { stocks: { select: { quantity: true, reserved: true } } } } },
+        }),
+        this.prisma.product.count({ where: tenantWhere }),
+      ])
+
+      return { items: tenantItems, meta: { page, limit, total: tenantTotal, totalPages: Math.ceil(tenantTotal / limit) } }
+    }
 
     return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }
   }
@@ -76,16 +122,33 @@ export class ProductService {
       select: { categoryId: true },
       distinct: ['categoryId'],
     })
-    return rows.map(r => r.categoryId as string).filter(Boolean)
+    if (rows.length > 0) {
+      return rows.map(r => r.categoryId as string).filter(Boolean)
+    }
+
+    const tenantRows = await this.prisma.product.findMany({
+      where: { tenantId, categoryId: { not: null } },
+      select: { categoryId: true },
+      distinct: ['categoryId'],
+    })
+    return tenantRows.map(r => r.categoryId as string).filter(Boolean)
   }
 
   // ─── Export CSV ──────────────────────────────────────────────
   async exportCsv(tenantId: string, ownerId: string): Promise<string> {
-    const products = await this.prisma.product.findMany({
+    let products = await this.prisma.product.findMany({
       where: { tenantId, ownerId },
       include: { variations: true },
       orderBy: { name: 'asc' },
     })
+
+    if (products.length === 0) {
+      products = await this.prisma.product.findMany({
+        where: { tenantId },
+        include: { variations: true },
+        orderBy: { name: 'asc' },
+      })
+    }
 
     const rows: string[] = ['Product SKU,Product Name,Category,Status,Variation SKU,Variation Name,Price,Weight']
     for (const p of products) {
@@ -163,8 +226,15 @@ export class ProductService {
 
   // ─── CRUD ────────────────────────────────────────────────────
   async findOne(tenantId: string, ownerId: string, id: string): Promise<Record<string, unknown> | null> {
-    return this.prisma.product.findFirst({
+    const ownerScoped = await this.prisma.product.findFirst({
       where: { id, tenantId, ownerId },
+      include: { variations: true },
+    })
+
+    if (ownerScoped) return ownerScoped
+
+    return this.prisma.product.findFirst({
+      where: { id, tenantId },
       include: { variations: true },
     }) as Promise<Record<string, unknown> | null>
   }
