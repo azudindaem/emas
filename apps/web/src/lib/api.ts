@@ -286,10 +286,26 @@ export const wallet = {
 // ─── Commission ───────────────────────────────────────────────────────────────
 
 export const commission = {
-  rules: () => request<unknown[]>('/commission/rules'),
+  rules: (params?: { type?: string; isActive?: boolean }) => {
+    const q = new URLSearchParams()
+    if (params?.type) q.set('type', params.type)
+    if (params?.isActive !== undefined) q.set('isActive', String(params.isActive))
+    const qs = q.toString()
+    return request<unknown[]>(`/commission/rules${qs ? '?' + qs : ''}`)
+  },
   createRule: (data: unknown) => request<unknown>('/commission/rules', { method: 'POST', body: JSON.stringify(data) }),
+  updateRule: (id: string, data: unknown) =>
+    request<unknown>(`/commission/rules/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteRule: (id: string) => request<unknown>(`/commission/rules/${id}`, { method: 'DELETE' }),
   calculate: (orderId: string) =>
     request<unknown>('/commission/calculate', { method: 'POST', body: JSON.stringify({ orderId }) }),
+  logs: (params?: { userId?: string; orderId?: string }) => {
+    const q = new URLSearchParams()
+    if (params?.userId) q.set('userId', params.userId)
+    if (params?.orderId) q.set('orderId', params.orderId)
+    const qs = q.toString()
+    return request<unknown[]>(`/commission/logs${qs ? '?' + qs : ''}`)
+  },
 }
 
 // ─── Team ─────────────────────────────────────────────────────────────────────
