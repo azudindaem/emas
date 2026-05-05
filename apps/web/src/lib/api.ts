@@ -67,6 +67,12 @@ export const auth = {
       body: JSON.stringify(data),
     }),
 
+  devLogin: () =>
+    request<{ accessToken: string; refreshToken: string; user: Record<string, unknown> }>('/auth/dev-login', {
+      method: 'POST',
+      skipAuth: true,
+    }),
+
   me: () =>
     request<{
       id: string

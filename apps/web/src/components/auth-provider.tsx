@@ -29,6 +29,7 @@ interface AuthContextType {
   isSuperAdmin: boolean
   isSystemOwner: boolean
   login: (email: string, password: string) => Promise<void>
+  devLogin: () => Promise<void>
   logout: () => void
   refreshMe: () => Promise<void>
   hasPermission: (perm: string) => boolean
@@ -75,6 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshMe()
   }
 
+  async function devLogin() {
+    const res = await auth.devLogin()
+    setToken(res.accessToken)
+    await refreshMe()
+  }
+
   function logout() {
     clearToken()
     setUser(null)
@@ -93,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <LocaleProvider>
-      <AuthContext.Provider value={{ user, loading, isOwner, isSuperAdmin, isSystemOwner, login, logout, refreshMe, hasPermission }}>
+      <AuthContext.Provider value={{ user, loading, isOwner, isSuperAdmin, isSystemOwner, login, devLogin, logout, refreshMe, hasPermission }}>
         {children}
       </AuthContext.Provider>
     </LocaleProvider>

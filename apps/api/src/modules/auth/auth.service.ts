@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'
@@ -36,6 +36,32 @@ export class AuthService {
     if (!membership) throw new UnauthorizedException('No workspace found')
 
     // JWT carries the workspace tenantId (not the platform domain tenant)
+    const tokens = this.generateTokens(user.id, membership.tenantId)
+    return {
+      ...tokens,
+      user: { id: user.id, name: user.name, email: user.email },
+    }
+  }
+
+  async devLogin() {
+    const enabled = this.config.get<string>('SYSTEM_LOGIN', 'off')
+    if (enabled !== 'on') throw new ForbiddenException('Dev login is disabled')
+
+    const emails = this.getSuperAdminEmails()
+    if (!emails.length) throw new ForbiddenException('SYSTEM_OWNER_EMAILS not configured')
+
+    const email = emails[0]
+    const allUsers = await this.prisma.user.findMany({
+      where: { email },
+      include: { memberships: { orderBy: { level: 'desc' }, take: 1 } },
+    })
+    if (!allUsers.length) throw new UnauthorizedException('Owner user not found')
+
+    allUsers.sort((a, b) => (b.memberships[0]?.level ?? 0) - (a.memberships[0]?.level ?? 0))
+    const user = allUsers[0]
+    const membership = user.memberships[0]
+    if (!membership) throw new UnauthorizedException('No workspace found')
+
     const tokens = this.generateTokens(user.id, membership.tenantId)
     return {
       ...tokens,

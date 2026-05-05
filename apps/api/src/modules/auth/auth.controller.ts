@@ -18,6 +18,12 @@ export class AuthController {
     return this.auth.login(dto)
   }
 
+  @Post('dev-login')
+  @HttpCode(HttpStatus.OK)
+  devLogin() {
+    return this.auth.devLogin()
+  }
+
   @Post('send-tac')
   @HttpCode(HttpStatus.OK)
   sendTac(@Body() dto: SendTacDto, @CurrentTenant() tenant: TenantContext) {

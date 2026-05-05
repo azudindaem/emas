@@ -3,16 +3,19 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Zap } from 'lucide-react'
+
+const DEV_LOGIN = process.env.NEXT_PUBLIC_SYSTEM_LOGIN === 'on'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, devLogin } = useAuth()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [devLoading, setDevLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,6 +28,19 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : 'Log masuk gagal')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDevLogin() {
+    setError('')
+    setDevLoading(true)
+    try {
+      await devLogin()
+      router.push('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Dev login gagal')
+    } finally {
+      setDevLoading(false)
     }
   }
 
@@ -93,6 +109,25 @@ export default function LoginPage() {
               {loading ? 'Sedang log masuk...' : 'Log Masuk'}
             </button>
           </form>
+
+          {DEV_LOGIN && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 font-mono">DEV</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+              <button
+                type="button"
+                onClick={handleDevLogin}
+                disabled={devLoading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-900 hover:bg-gray-800 text-yellow-400 font-semibold rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed border border-gray-700"
+              >
+                <Zap size={14} />
+                {devLoading ? 'Connecting...' : 'Quick Login (Admin)'}
+              </button>
+            </div>
+          )}
 
           <p className="mt-6 text-center text-xs text-gray-400">
             Belum ada akaun?{' '}
