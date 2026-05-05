@@ -1,4 +1,5 @@
 const API_BASE = '/api/v1'
+import { translatePermissionError } from './permission-labels'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -34,7 +35,8 @@ async function request<T>(
       clearToken()
       window.location.href = '/login'
     }
-    throw new Error(err.message ?? 'Request failed')
+    const rawMessage: string = err.message ?? 'Request failed'
+    throw new Error(translatePermissionError(rawMessage))
   }
 
   return res.json() as Promise<T>
