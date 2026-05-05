@@ -726,7 +726,7 @@ enum CourierProvider {
   GDEX
   SKYNET
   AIRPAK
-  OTHERS
+  PARCEL_DAILY
 }
 
 enum NotifyCreditTransactionType {

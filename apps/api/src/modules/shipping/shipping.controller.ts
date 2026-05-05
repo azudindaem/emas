@@ -85,6 +85,14 @@ export class ShippingController {
     return this.shippingService.deleteCourierAccount(tenant.id, id)
   }
 
+  @Get('couriers/providers/parcel-daily-services')
+  @UseGuards(RbacGuard)
+  @RequirePermission('shipping.read')
+  @ApiOperation({ summary: 'Get available Parcel Daily service providers' })
+  getParcelDailyServices() {
+    return this.shippingService.getParcelDailyServices()
+  }
+
   // ─── Rates ────────────────────────────────────────────────────────────────
 
   @Post('rates')

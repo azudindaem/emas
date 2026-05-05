@@ -70,7 +70,7 @@ const COURIER_PROVIDERS = [
   'GDEX',
   'SKYNET',
   'AIRPAK',
-  'OTHERS',
+  'PARCEL_DAILY',
 ]
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -82,8 +82,18 @@ const PROVIDER_LABELS: Record<string, string> = {
   GDEX: 'GDEX',
   SKYNET: 'Skynet',
   AIRPAK: 'AirPak',
-  OTHERS: 'Others',
+  PARCEL_DAILY: 'Parcel Daily',
 }
+
+const PARCEL_DAILY_SERVICE_PROVIDERS = [
+  { value: 'jnt', label: 'J&T Express' },
+  { value: 'dhl', label: 'DHL' },
+  { value: 'ninjavan', label: 'NinjaVan' },
+  { value: 'poslaju', label: 'Pos Laju' },
+  { value: 'abx', label: 'ABX Express' },
+  { value: 'gdex', label: 'GDEX' },
+  { value: 'citylink', label: 'Citylink' },
+]
 
 const RATE_TYPES = ['FLAT', 'WEIGHT_TIER', 'FREE_SHIPPING', 'COD_SURCHARGE', 'REMOTE_SURCHARGE']
 
@@ -140,7 +150,7 @@ const COURIER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
     { key: 'username', labelKey: 'fieldUsername', type: 'text', required: true },
     { key: 'password', labelKey: 'fieldPassword', type: 'password', required: true },
   ],
-  OTHERS: [
+  PARCEL_DAILY: [
     { key: 'token', labelKey: 'fieldToken', type: 'password', required: true },
     { key: 'merchantId', labelKey: 'fieldMerchantId', type: 'text', required: true, placeholder: 'qTP8VvoJS9' },
     {
@@ -150,7 +160,18 @@ const COURIER_CREDENTIAL_FIELDS: Record<string, CredentialField[]> = {
         { value: 'production', labelKey: 'envProduction' },
       ],
     },
-    { key: 'serviceProvider', labelKey: 'fieldServiceProvider', type: 'text', required: false, placeholder: 'jnt / dhl / ninjavan' },
+    {
+      key: 'serviceProvider', labelKey: 'fieldServiceProvider', type: 'select', required: true,
+      options: [
+        { value: 'jnt', labelKey: 'serviceProviderJnt' },
+        { value: 'dhl', labelKey: 'serviceProviderDhl' },
+        { value: 'ninjavan', labelKey: 'serviceProviderNinjavan' },
+        { value: 'poslaju', labelKey: 'serviceProviderPoslaju' },
+        { value: 'abx', labelKey: 'serviceProviderAbx' },
+        { value: 'gdex', labelKey: 'serviceProviderGdex' },
+        { value: 'citylink', labelKey: 'serviceProviderCitylink' },
+      ],
+    },
     { key: 'isDropoff', labelKey: 'fieldDropoff', type: 'checkbox', required: false },
     { key: 'isNotify', labelKey: 'fieldNotify', type: 'text', required: false, placeholder: 'SMS / WhatsApp / Email' },
     { key: 'isReschedule', labelKey: 'fieldReschedule', type: 'text', required: false, placeholder: 'WhatsApp' },
@@ -227,6 +248,32 @@ function CourierModal({
   const [isActive, setIsActive] = useState(courier?.isActive ?? true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [serviceProviders, setServiceProviders] = useState<Array<{ value: string; label: string }>>([])
+  const [loadingServices, setLoadingServices] = useState(false)
+
+  // Load service providers when component mounts
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        setLoadingServices(true)
+        const response = await fetch('/api/shipping/couriers/providers/parcel-daily-services')
+        if (response.ok) {
+          const data = await response.json()
+          const mappedServices = (data.services ?? []).map((s: { value: string; label: string }) => ({
+            value: s.value,
+            labelKey: `serviceProvider${s.label.replace(/\s+/g, '').replace(/&/g, '')}`,
+          }))
+          setServiceProviders(mappedServices.length > 0 ? mappedServices : PARCEL_DAILY_SERVICE_PROVIDERS)
+        }
+      } catch {
+        setServiceProviders(PARCEL_DAILY_SERVICE_PROVIDERS)
+      } finally {
+        setLoadingServices(false)
+      }
+    }
+
+    loadServices()
+  }, [])
 
   function handleProviderChange(newProvider: string) {
     setProvider(newProvider)
@@ -251,6 +298,9 @@ function CourierModal({
   }
 
   const currentFields = COURIER_CREDENTIAL_FIELDS[provider] ?? []
+  const dynamicServiceProviders = provider === 'PARCEL_DAILY' && serviceProviders.length > 0
+    ? serviceProviders
+    : PARCEL_DAILY_SERVICE_PROVIDERS
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -320,12 +370,26 @@ function CourierModal({
                           value={credentialFields[field.key] ?? ''}
                           onChange={(e) => setCredentialFields(prev => ({ ...prev, [field.key]: e.target.value }))}
                           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                          disabled={field.key === 'serviceProvider' && loadingServices}
                         >
-                          {field.options?.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {(labels as Record<string, string>)[opt.labelKey] ?? opt.labelKey}
-                            </option>
-                          ))}
+                          {field.key === 'serviceProvider' ? (
+                            <>
+                              <option value="">-- Select service provider --</option>
+                              {dynamicServiceProviders.map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <>
+                              {field.options?.map(opt => (
+                                <option key={opt.value} value={opt.value}>
+                                  {(labels as Record<string, string>)[opt.labelKey] ?? opt.labelKey}
+                                </option>
+                              ))}
+                            </>
+                          )}
                         </select>
                       ) : (
                         <input

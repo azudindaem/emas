@@ -462,6 +462,13 @@ const ms = {
     dropoffLabel: 'Dropoff (jika tidak, pickup)',
     apiKey: 'API Key',
     secret: 'Secret',
+    serviceProviderJnt: 'J&T Express',
+    serviceProviderDhl: 'DHL',
+    serviceProviderNinjavan: 'NinjaVan',
+    serviceProviderPoslaju: 'Pos Laju',
+    serviceProviderAbx: 'ABX Express',
+    serviceProviderGdex: 'GDEX',
+    serviceProviderCitylink: 'Citylink',
     shipmentStatusLabels: {
       PENDING: 'Menunggu',
       PROCESSING: 'Diproses',

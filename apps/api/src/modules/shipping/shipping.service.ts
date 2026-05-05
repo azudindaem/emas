@@ -343,6 +343,22 @@ export class ShippingService {
     return { success: true }
   }
 
+  // ─── Parcel Daily Service Providers ────────────────────────────────────────
+
+  getParcelDailyServices() {
+    return {
+      services: [
+        { value: 'jnt', label: 'J&T Express' },
+        { value: 'dhl', label: 'DHL' },
+        { value: 'ninjavan', label: 'NinjaVan' },
+        { value: 'poslaju', label: 'Pos Laju' },
+        { value: 'abx', label: 'ABX Express' },
+        { value: 'gdex', label: 'GDEX' },
+        { value: 'citylink', label: 'Citylink' },
+      ],
+    }
+  }
+
   // ─── Shipments ─────────────────────────────────────────────────────────────
 
   async listShipments(tenantId: string, query: ListShipmentsQueryDto) {
@@ -406,7 +422,7 @@ export class ShippingService {
     })
     if (!courierAccount) throw new NotFoundException('Active courier account not found')
 
-    if (courierAccount.provider === 'OTHERS') {
+    if (courierAccount.provider === 'PARCEL_DAILY') {
       const config = this.getParceldailyConfig(courierAccount)
       const pickupAddress = config.pickupAddress
       if (!pickupAddress) {
@@ -569,7 +585,7 @@ export class ShippingService {
       const webhookCourierPayload = {
         id: courierAccount.id,
         label: courierAccount.label,
-        provider: courierAccount.provider === 'OTHERS' && config.serviceProvider
+        provider: courierAccount.provider === 'PARCEL_DAILY' && config.serviceProvider
           ? config.serviceProvider.toUpperCase()
           : courierAccount.provider,
       }
@@ -765,7 +781,7 @@ export class ShippingService {
       ? await this.prisma.courierAccount.findFirst({ where: { id: shipment.courierId, tenantId, isActive: true } })
       : null
 
-    if (courierAccount?.provider === 'OTHERS') {
+    if (courierAccount?.provider === 'PARCEL_DAILY') {
       const config = this.getParceldailyConfig(courierAccount)
       // Try to cancel via ParcelDaily — use awbNo as orderId (parceldaily objectId)
       const response = await this.callParceldaily(config, '/v1/partner/order/cancel', {
@@ -794,7 +810,7 @@ export class ShippingService {
     })
     if (!courierAccount) throw new NotFoundException('Active courier account not found')
 
-    if (courierAccount.provider === 'OTHERS' && this.isParceldailyCredentials(courierAccount.credentials)) {
+    if (courierAccount.provider === 'PARCEL_DAILY' && this.isParceldailyCredentials(courierAccount.credentials)) {
       const config = this.getParceldailyConfig(courierAccount)
       const response = await this.callParceldaily(config, '/v2/partner/track/', { connote: dto.awbNo })
       return {
@@ -845,7 +861,7 @@ export class ShippingService {
 
     const rates = await Promise.all(
       accounts.map(async (acc) => {
-        if (acc.provider === 'OTHERS' && this.isParceldailyCredentials(acc.credentials)) {
+        if (acc.provider === 'PARCEL_DAILY' && this.isParceldailyCredentials(acc.credentials)) {
           const config = this.getParceldailyConfig(acc)
           const quotePayload = await this.callParceldaily(config, '/v1/partner/merchant/quote', {
             origin: dto.fromPostcode,
