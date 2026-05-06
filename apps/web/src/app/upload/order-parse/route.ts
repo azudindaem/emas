@@ -255,11 +255,6 @@ function enrichAddress(data: ParsedOrder): ParsedOrder {
 
 export async function POST(req: NextRequest) {
   try {
-    const key = process.env.OPENAI_KEY || process.env.OPENAI_API_KEY
-    if (!key) {
-      return NextResponse.json({ error: 'OpenAI API key is missing in environment.' }, { status: 500 })
-    }
-
     const body = await req.json().catch(() => ({})) as {
       input?: string
       productCatalog?: unknown
@@ -275,9 +270,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Input is too long (max 10000 chars).' }, { status: 400 })
     }
 
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+    const baseUrl = process.env.LOCAL_AI_BASE_URL || 'http://127.0.0.1:11434'
+    const model = process.env.LOCAL_AI_MODEL || 'qwen2.5:7b'
+    const timeoutMs = Number(process.env.LOCAL_AI_TIMEOUT_MS || '20000')
 
-    const systemPrompt = [
+    const promptParts = [
       'You are an extraction assistant for a commerce order form.',
       'Extract fields from free text into STRICT JSON only.',
       'Do not include markdown, code fences, or explanations.',
@@ -313,45 +310,42 @@ export async function POST(req: NextRequest) {
       '}',
       'If a field is unknown, omit it.',
       'Normalize payment/shipping values to the enums above when possible.',
-    ].join('\n')
-
-    const messages: Array<{ role: 'system' | 'user'; content: string }> = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `ORDER_TEXT:\n${input}` },
+      '',
+      `ORDER_TEXT:\n${input}`,
     ]
 
     if (productCatalog.length > 0) {
-      messages.push({
-        role: 'user',
-        content: `AVAILABLE_CATALOG:\n${JSON.stringify(productCatalog)}`,
-      })
+      promptParts.push(`AVAILABLE_CATALOG:\n${JSON.stringify(productCatalog)}`)
     }
 
-    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    const aiRes = await fetch(`${baseUrl}/api/generate`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model,
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-        messages,
+        prompt: promptParts.join('\n'),
+        stream: false,
+        format: 'json',
+        options: {
+          temperature: 0.1,
+        },
       }),
+      signal: AbortSignal.timeout(timeoutMs),
     })
 
     const aiJson = await aiRes.json().catch(() => ({})) as {
-      error?: { message?: string }
-      choices?: Array<{ message?: { content?: string } }>
+      error?: string
+      response?: string
     }
 
     if (!aiRes.ok) {
-      const msg = aiJson.error?.message || 'AI extraction request failed.'
+      const msg = aiJson.error || 'Local AI extraction request failed.'
       return NextResponse.json({ error: msg }, { status: 502 })
     }
 
-    const rawContent = aiJson.choices?.[0]?.message?.content
+    const rawContent = aiJson.response
     if (!rawContent) {
       return NextResponse.json({ error: 'AI response is empty.' }, { status: 502 })
     }
